@@ -1,0 +1,5 @@
+sphinx
+numpydoc
+intersphinx_registry
+pydata_sphinx_theme
+-e .
