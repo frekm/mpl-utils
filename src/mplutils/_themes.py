@@ -703,9 +703,9 @@ def dotted(
     .. code-block:: python
 
         import matplotlib.pyplot as plt
-        import atompy as ap
+        import mplutils as mplu
 
-        plt.plot([0., 1.], linestyle=ap.dotted())
+        plt.plot([0., 1.], linestyle=mplu.dotted())
         plt.legend()
 
         # if one changes the linewidth, the fontsize of the legend, or the
@@ -713,7 +713,7 @@ def dotted(
         # to dotted().
         plt.plot([0., 1.],
                  linewidth=2.,
-                 linestyle=(ap.dotted(linewidth=2.,
+                 linestyle=(mplu.dotted(linewidth=2.,
                                       legend_handlelength=3.,
                                       fontsize="x-small")))
         plt.legend(fontsize="x-small", handlelength=3.)
@@ -722,7 +722,7 @@ def dotted(
         plt.rcParams["lines.linewidth"] = 2.
         plt.rcParams["legend.handlelength"] = 3.
         plt.rcParams["legend.fontsize"] = "x-small"
-        plt.plot([0., 1.], linestyle=ap.dotted())
+        plt.plot([0., 1.], linestyle=mplu.dotted())
         plt.legend()
 
     .. plot:: _examples/themes/legend_dotted.py

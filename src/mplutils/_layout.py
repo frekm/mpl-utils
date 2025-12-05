@@ -122,7 +122,7 @@ class Quadrants(NamedTuple):
         --------
         ::
 
-            >>> quadrants = ap.Quadrants(1.0, 1.0, 1.0, 1.0)
+            >>> quadrants = mplu.Quadrants(1.0, 1.0, 1.0, 1.0)
             >>> quadrants
             Quadrants(top=1.0, right=1.0, bottom=1.0, left=1.0)
             >>> quadrants.astype(int)
@@ -194,7 +194,7 @@ class Size(NamedTuple):
         --------
         ::
 
-            >>> size = ap.Size(3.0, 3.0)
+            >>> size = mplu.Size(3.0, 3.0)
             >>> size
             Size(width=3.0, height=3.0)
             >>> size.astype(int)
@@ -545,7 +545,7 @@ def get_axes_size_inches(ax: Axes | None = None) -> Size:
     ::
 
         >>> ax = plt.subplot()
-        >>> size = ap.get_axes_size_inches(ax)
+        >>> size = mplu.get_axes_size_inches(ax)
         >>> size.width
         4.96
         >>> size.height
@@ -622,25 +622,25 @@ def set_axes_size_inches(
     Create an axes and check its size::
 
         >>> ax = plt.subplot()
-        >>> ap.get_axes_size_inches()
+        >>> mplu.get_axes_size_inches()
         Size(width=4.96, height=3.7)
     
     Set size to (width, height)::
 
-        >>> ap.set_axes_size_inches((4, 3))
-        >>> ap.get_axes_size_inches()
+        >>> mplu.set_axes_size_inches((4, 3))
+        >>> mplu.get_axes_size_inches()
         Size(width=4.0, height=3.0)
 
     Set size to (width, width)::
 
-        >>> ap.set_axes_size_inches(4)
-        >>> ap.get_axes_size_inches()
+        >>> mplu.set_axes_size_inches(4)
+        >>> mplu.get_axes_size_inches()
         Size(width=4.0, height=4.0)
 
     Set size to (width, width × aspect)::
 
-        >>> ap.set_axes_size_inches(4, 4 / 3)
-        >>> ap.get_axes_size_inches()
+        >>> mplu.set_axes_size_inches(4, 4 / 3)
+        >>> mplu.get_axes_size_inches()
         Size(width=4.0, height=3.0)
     """
 
@@ -1004,17 +1004,17 @@ def get_margins_pts(
 
     Get margins, ignoring all labels, etc::
 
-        >>> ap.get_margins_pts()
+        >>> mplu.get_margins_pts()
         Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
 
     Get margins, taking labels, etc, into account::
 
-        >>> ap.get_margins_pts(ignore_labels=False)
+        >>> mplu.get_margins_pts(ignore_labels=False)
         Quadrants(top=41.47, right=46.07, bottom=38.01, left=57.6)
 
     Get margins, taking only labels, etc, from the top and bottom margins into account::
 
-        >>> ap.get_margins_pts(ignore_labels=(False, True))
+        >>> mplu.get_margins_pts(ignore_labels=(False, True))
         Quadrants(top=37.51, right=46.07, bottom=20.93, left=57.6)
     """
     fig = fig or plt.gcf()
@@ -1110,20 +1110,20 @@ def add_margins_pts(
     Create an axes and get its current margins using :func:`.get_margins_pts`::
 
         >>> ax = plt.subplot()
-        >>> ap.get_margins_pts()
+        >>> mplu.get_margins_pts()
         Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
 
     Add 5 pts to all margins::
 
-        >>> ap.add_margins_pts(5)
-        >>> ap.get_margins_pts()
+        >>> mplu.add_margins_pts(5)
+        >>> mplu.get_margins_pts()
         Quadrants(top=42.51, right=43.16, bottom=25.93, left=39.75)
 
     Remove all "extra" margins of the figure::
 
-        >>> margins = ap.get_margins_pts()
-        >>> ap.add_margins_pts(-margins)
-        >>> ap.get_margins_pts(ignore_labels=False)
+        >>> margins = mplu.get_margins_pts()
+        >>> mplu.add_margins_pts(-margins)
+        >>> mplu.get_margins_pts(ignore_labels=False)
         Quadrants(top=0.0, right=0.0, bottom=0.0, left=0.0)
 
     As the following plot shows, this removes the extra whitespace around the axes:
@@ -1263,13 +1263,13 @@ def add_column_pad_pts(
 
         >>> plt.subplot(121)
         >>> plt.subplot(122)
-        >>> ap.get_column_pad_pts(1)
+        >>> mplu.get_column_pad_pts(1)
         1.71
 
     Add 5 pts to the padding::
 
-        >>> ap.add_column_pad_pts(1, 5)
-        >>> ap.get_column_pad_pts(1)
+        >>> mplu.add_column_pad_pts(1, 5)
+        >>> mplu.get_column_pad_pts(1)
         6.71
 
     The below example shows how to remove any extra padding in-between columns:
@@ -1344,13 +1344,13 @@ def add_row_pad_pts(irow: int, pad_pts: float, fig: None | Figure = None) -> Non
 
         >>> plt.subplot(121)
         >>> plt.subplot(122)
-        >>> ap.get_column_pad_pts(1)
+        >>> mplu.get_column_pad_pts(1)
         1.71
 
     Add 5 pts to the padding::
 
-        >>> ap.add_column_pad_pts(1, 5)
-        >>> ap.get_column_pad_pts(1)
+        >>> mplu.add_column_pad_pts(1, 5)
+        >>> mplu.get_column_pad_pts(1)
         6.71
 
     The below example shows how to remove any extra padding in-between columns:
@@ -1423,19 +1423,19 @@ def get_column_pad_pts(
 
         >>> plt.subplot(121)
         >>> plt.subplot(122)
-        >>> ap.get_column_pad_pts(1)
+        >>> mplu.get_column_pad_pts(1)
         1.71
 
     Ignore axis labels, ticklabels, etc::
 
-        >>> ap.get_column_pad_pts(1, ignore_labels=True)
+        >>> mplu.get_column_pad_pts(1, ignore_labels=True)
         32.47
 
     Get the column padding *before* the first column (i.e., the left figure margin)::
 
-        >>> ap.get_column_pad_pts(0)
+        >>> mplu.get_column_pad_pts(0)
         34.76
-        >>> ap.get_margins.pts().left
+        >>> mplu.get_margins.pts().left
         34.76
     """
     fig = fig or plt.gcf()
@@ -1510,19 +1510,19 @@ def get_row_pad_pts(
 
         >>> plt.subplot(211)
         >>> plt.subplot(212)
-        >>> ap.get_row_pad_pts(1)
+        >>> mplu.get_row_pad_pts(1)
         3.15
 
     Ignore axis labels, ticklabels, etc::
 
-        >>> ap.get_row_pad_pts(1, ignore_labels=True)
+        >>> mplu.get_row_pad_pts(1, ignore_labels=True)
         24.19
 
     Get the row padding *before* the first row (i.e., the top figure margin)::
 
-        >>> ap.get_row_pad_pts(0)
+        >>> mplu.get_row_pad_pts(0)
         37.51
-        >>> ap.get_margins.pts().top
+        >>> mplu.get_margins.pts().top
         37.51
     """
     fig = fig or plt.gcf()
