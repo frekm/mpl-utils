@@ -1131,11 +1131,6 @@ def add_margins_pts(
     .. plot:: _examples/layout/add_margins_pts.py
         :include-source:
 
-    This also works as expected with colorbars added by :func:`.add_colorbar`:
-
-    .. plot:: _examples/layout/add_margins_pts_colorbars.py
-        :include-source:
-
     """
     fig = fig or plt.gcf()
     axs = _get_sorted_axes_grid(fig)
@@ -1683,9 +1678,6 @@ def make_me_nice(
 
     Examples
     --------
-    For a more extensive tutorial on how to layout a figure using `make_me_nice`,
-    see :doc:`../../tutorials/figure_layout`.
-
     Remove margins from a single axes while keeping the axes size constant.
 
     .. plot:: _examples/layout/make_me_nice_default.py

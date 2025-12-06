@@ -249,11 +249,6 @@ def set_color_cycle(
         If ``None``, check if a figure already exists. If so, update the color
         cycle of all axes of the last active figure.
 
-    Notes
-    -----
-    For some color palettes included in `aplepy`,
-    see :ref:`Color Palettes <constants palettes>`.
-
     Examples
     --------
 
@@ -374,12 +369,6 @@ def set_nice_theme(
 
     use_serif : bool, default `True`
         Use a font-family with serifs. If `False`, use a sans-serif font family.
-
-    Examples
-    --------
-
-    .. plot:: _examples/themes/set_theme_atompy.py
-        :include-source:
 
     """
     spines_sort = "".join(sorted(spines))

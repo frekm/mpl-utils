@@ -247,18 +247,6 @@ def for_pcolormesh(
     -------
     X, Y, C : ndarray
         Output formatted to work with :func:`matplotlib.pyplot.pcolormesh`.
-
-    See also
-    --------
-    for_pcolormesh_from_root
-    for_pcolormesh_from_txt
-
-    Examples
-    --------
-
-    .. plot:: _examples/io/for_pcolormesh.py
-        :include-source:
-
     """
     z_ = np.asarray(z)
     if len(np.asarray(xcenters)) != len(np.asarray(ycenters)) != len(z_):

@@ -22,6 +22,7 @@ from ._layout import (
 from ._misc import (
     savefig,
     for_pcolormesh,
+    centers_to_edges,
 )
 
 from ._themes import (
