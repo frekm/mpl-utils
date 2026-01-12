@@ -50,6 +50,20 @@ T = TypeVar("T")
 
 
 class Quadrants(NamedTuple):
+    """
+    Tuple representing the top/right/bottom/left quadrants of a figure.
+
+    Parameters
+    ----------
+    top, right, bottom, left :
+        The value(s) representing the top, right, bottom, left quadrants.
+
+    Attributes
+    ----------
+    t, r, b, l :
+        Alias for top/right/bottom/left.
+    """
+
     top: Any
     right: Any
     bottom: Any
@@ -57,18 +71,30 @@ class Quadrants(NamedTuple):
 
     @property
     def t(self) -> Any:
+        """
+        Alias for top.
+        """
         return self.top
 
     @property
     def r(self) -> Any:
+        """
+        Alias for right.
+        """
         return self.right
 
     @property
     def b(self) -> Any:
+        """
+        Alias for bottom.
+        """
         return self.bottom
 
     @property
     def l(self) -> Any:
+        """
+        Alias for left.
+        """
         return self.left
 
     def __neg__(self) -> "Quadrants":
@@ -132,6 +158,20 @@ class Quadrants(NamedTuple):
 
 
 class Size(NamedTuple):
+    """
+    Tuple representing the size of an area.
+
+    Parameters
+    ----------
+    width, height :
+        Width(s) and height(s) of the area.
+
+    Attributes
+    ----------
+    w, h :
+        Aliases for width/height.
+    """
+
     width: Any
     height: Any
 
