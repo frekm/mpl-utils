@@ -2,7 +2,7 @@ from ._layout import (
     MM_PER_INCH,
     PTS_PER_MM,
     PTS_PER_INCH,
-    Size,
+    Area,
     Quadrants,
     set_axes_size_inches,
     get_axes_size_inches,

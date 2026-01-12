@@ -157,7 +157,7 @@ class Quadrants(NamedTuple):
         return Quadrants(*[t(el) for el in self])
 
 
-class Size(NamedTuple):
+class Area(NamedTuple):
     """
     Tuple representing the size of an area.
 
@@ -183,50 +183,50 @@ class Size(NamedTuple):
     def h(self) -> Any:
         return self.height
 
-    def __mul__(self, val) -> "Size":
-        if isinstance(val, Size):
-            return Size(*[self[i] * val[i] for i in range(2)])
-        return Size(*[el * val for el in self])
+    def __mul__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] * val[i] for i in range(2)])
+        return Area(*[el * val for el in self])
 
-    def __rmul__(self, val) -> "Size":
+    def __rmul__(self, val) -> "Area":
         return self * val
 
-    def __add__(self, val) -> "Size":
-        if isinstance(val, Size):
-            return Size(*[self[i] + val[i] for i in range(2)])
-        return Size(*[el + val for el in self])
+    def __add__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] + val[i] for i in range(2)])
+        return Area(*[el + val for el in self])
 
-    def __radd__(self, val) -> "Size":
+    def __radd__(self, val) -> "Area":
         return self + val
 
-    def __sub__(self, val) -> "Size":
-        if isinstance(val, Size):
-            return Size(*[self[i] - val[i] for i in range(2)])
-        return Size(*[el - val for el in self])
+    def __sub__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] - val[i] for i in range(2)])
+        return Area(*[el - val for el in self])
 
-    def __rsub__(self, val) -> "Size":
+    def __rsub__(self, val) -> "Area":
         return self - val
 
-    def __truediv__(self, val) -> "Size":
-        if isinstance(val, Size):
-            return Size(*[self[i] / val[i] for i in range(2)])
-        return Size(*[el / val for el in self])
+    def __truediv__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] / val[i] for i in range(2)])
+        return Area(*[el / val for el in self])
 
-    def __rtruediv__(self, val) -> "Size":
+    def __rtruediv__(self, val) -> "Area":
         return self / val
 
-    def __floordiv__(self, val) -> "Size":
-        if isinstance(val, Size):
-            return Size(*[self[i] // val[i] for i in range(2)])
-        return Size(*[el // val for el in self])
+    def __floordiv__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] // val[i] for i in range(2)])
+        return Area(*[el // val for el in self])
 
-    def __rfloordiv__(self, val) -> "Size":
+    def __rfloordiv__(self, val) -> "Area":
         return self // val
 
-    def __neg__(self) -> "Size":
-        return Size(*[-el for el in self])
+    def __neg__(self) -> "Area":
+        return Area(*[-el for el in self])
 
-    def astype(self, t: Type) -> "Size":
+    def astype(self, t: Type) -> "Area":
         """
         Convert elements to type `t`
 
@@ -234,13 +234,13 @@ class Size(NamedTuple):
         --------
         ::
 
-            >>> size = mplu.Size(3.0, 3.0)
+            >>> size = mplu.Area(3.0, 3.0)
             >>> size
-            Size(width=3.0, height=3.0)
+            Area(width=3.0, height=3.0)
             >>> size.astype(int)
-            Size(width=3, height=3)
+            Area(width=3, height=3)
         """
-        return Size(*[t(el) for el in self])
+        return Area(*[t(el) for el in self])
 
 
 def _get_topmost_figure(ax: Axes) -> Figure:
@@ -565,7 +565,7 @@ def _get_renderer(fig: Optional[Figure]) -> RendererBase:
     return renderer
 
 
-def get_axes_size_inches(ax: Axes | None = None) -> Size:
+def get_axes_size_inches(ax: Axes | None = None) -> Area:
     """
     Get the size of `ax` in inches.
 
@@ -576,8 +576,8 @@ def get_axes_size_inches(ax: Axes | None = None) -> Size:
 
     Returns
     -------
-    size : :class:`.Size`
-        Size wrapped in a NamedTuple (width, height) in inches.
+    area : :class:`.Area`
+        Area wrapped in a NamedTuple (width, height) in inches.
 
     Examples
     --------
@@ -593,9 +593,9 @@ def get_axes_size_inches(ax: Axes | None = None) -> Size:
     """
     ax = ax or plt.gca()
     fig = _get_topmost_figure(ax)
-    figsize = Size(*fig.get_size_inches())
+    figsize = Area(*fig.get_size_inches())
     ax_bbox = ax.get_position()
-    return Size(ax_bbox.width * figsize.width, ax_bbox.height * figsize.height)
+    return Area(ax_bbox.width * figsize.width, ax_bbox.height * figsize.height)
 
 
 def set_axes_size_inches(
@@ -663,25 +663,25 @@ def set_axes_size_inches(
 
         >>> ax = plt.subplot()
         >>> mplu.get_axes_size_inches()
-        Size(width=4.96, height=3.7)
+        Area(width=4.96, height=3.7)
     
     Set size to (width, height)::
 
         >>> mplu.set_axes_size_inches((4, 3))
         >>> mplu.get_axes_size_inches()
-        Size(width=4.0, height=3.0)
+        Area(width=4.0, height=3.0)
 
     Set size to (width, width)::
 
         >>> mplu.set_axes_size_inches(4)
         >>> mplu.get_axes_size_inches()
-        Size(width=4.0, height=4.0)
+        Area(width=4.0, height=4.0)
 
     Set size to (width, width × aspect)::
 
         >>> mplu.set_axes_size_inches(4, 4 / 3)
         >>> mplu.get_axes_size_inches()
-        Size(width=4.0, height=3.0)
+        Area(width=4.0, height=3.0)
     """
 
     @dataclass
@@ -692,20 +692,20 @@ def set_axes_size_inches(
         height: float
 
     ax = ax or plt.gca()
-    figsize = Size(*_get_topmost_figure(ax).get_size_inches())
+    figsize = Area(*_get_topmost_figure(ax).get_size_inches())
 
     size_inch = np.asarray(size_inch).astype(float)
     if not size_inch.ndim > 0:
         if aspect == "auto":
-            new_size_inch = Size(size_inch, size_inch)
+            new_size_inch = Area(size_inch, size_inch)
         else:
-            new_size_inch = Size(size_inch, size_inch * aspect)
+            new_size_inch = Area(size_inch, size_inch * aspect)
     else:
         if aspect != "auto" and size_inch[1] / size_inch[0] != aspect:
             raise ValueError("size_inch and aspect contradict each other")
         else:
-            new_size_inch = Size(*size_inch)
-    new_size = Size(
+            new_size_inch = Area(*size_inch)
+    new_size = Area(
         new_size_inch.width / figsize.width, new_size_inch.height / figsize.height
     )
 
@@ -965,7 +965,7 @@ def _get_tbboxes_inch_grid(axs: NDArray, renderer: None | RendererBase) -> NDArr
 
 
 def _get_margins_inch(
-    ignore_labels: ArrayLike, bboxes_inch: NDArray, tbboxes_inch: NDArray, figsize: Size
+    ignore_labels: ArrayLike, bboxes_inch: NDArray, tbboxes_inch: NDArray, figsize: Area
 ) -> Quadrants:
     """
     Implementation of :func:`.get_margins_pts`.
@@ -1058,7 +1058,7 @@ def get_margins_pts(
         Quadrants(top=37.51, right=46.07, bottom=20.93, left=57.6)
     """
     fig = fig or plt.gcf()
-    figsize = Size(*fig.get_size_inches())
+    figsize = Area(*fig.get_size_inches())
     axs = _get_sorted_axes_grid(fig)
     renderer = _get_renderer(fig)
     bboxes_inch = _get_bboxes_inch_grid(axs)
@@ -1482,7 +1482,7 @@ def get_column_pad_pts(
         return pads_inch[icol - 1] * PTS_PER_INCH
     else:
         pads_inch = _get_margins_inch(
-            ignore_labels, bboxes, tbboxes, Size(*fig.get_size_inches())
+            ignore_labels, bboxes, tbboxes, Area(*fig.get_size_inches())
         )
         pads_pts = pads_inch * PTS_PER_INCH
         return pads_pts.left if icol == 0 else pads_pts.right
@@ -1569,7 +1569,7 @@ def get_row_pad_pts(
         return pads_inch[irow - 1] * PTS_PER_INCH
     else:
         pads_inch = _get_margins_inch(
-            ignore_labels, bboxes, tbboxes, Size(*fig.get_size_inches())
+            ignore_labels, bboxes, tbboxes, Area(*fig.get_size_inches())
         )
         pads_pts = pads_inch * PTS_PER_INCH
         return pads_pts.top if irow == 0 else pads_pts.bottom
@@ -1746,7 +1746,7 @@ def make_me_nice(
     ):
         bboxes = _get_bboxes_inch_grid(axs)
         tbboxes = _get_tbboxes_inch_grid(axs, renderer)
-        current_figsize = Size(*fig.get_size_inches())
+        current_figsize = Area(*fig.get_size_inches())
 
         current_colpads = _get_colpads_inch(
             ncols, col_pad_ignores_labels, bboxes, tbboxes

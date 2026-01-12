@@ -33,5 +33,5 @@ API reference
     dash_dotted
     dashed
     add_abc
-    Size
+    Area
     Quadrants
