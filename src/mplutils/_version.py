@@ -1,1 +1,1 @@
-__version__ = "0.1.0-dev"  # also update in pyproject.toml
+__version__ = "0.1.0"  # also update in pyproject.toml
