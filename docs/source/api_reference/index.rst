@@ -26,7 +26,6 @@ API reference
     for_pcolormesh
     set_color_cycle
     set_latex_backend
-    set_nice_theme
     crop_colormap
     textwithbox
     dotted

@@ -35,7 +35,6 @@ from ._themes import (
     okabe_ito_muted,
     set_color_cycle,
     set_latex_backend,
-    set_nice_theme,
     crop_colormap,
     textwithbox,
     dotted,
