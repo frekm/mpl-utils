@@ -1,6 +1,6 @@
 [project]
 name = "mplutils"
-version = "0.1.0" # also update _version.py
+version = "0.1.1-dev" # also update _version.py
 authors = [{ name = "Max Kircher" }]
 description = """
     A collection of utility methods to manipulate matplotlib figures.
