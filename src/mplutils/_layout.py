@@ -552,18 +552,10 @@ def _get_renderer(fig: Optional[Figure]) -> RendererBase:
     """
     fig = fig or plt.gcf()
     if hasattr(fig.canvas, "get_renderer"):
-        # Some backends, such as TkAgg, have the get_renderer method, which
-        # makes this easy.
-        renderer = fig.canvas.get_renderer()  # type: ignore
-    else:
-        # Other backends do not have the get_renderer method, so we have a work
-        # around to find the renderer.  Print the figure to a temporary file
-        # object, and then grab the renderer that was used.
-        # (I stole this trick from the matplotlib backend_bases.py
-        # print_figure() method.)
-        fig.canvas.print_pdf(io.BytesIO())  # type: ignore
-        renderer = fig._cachedRenderer  # type: ignore
-    return renderer
+        return fig.canvas.get_renderer()  # type: ignore
+    fig.canvas.print_pdf(io.BytesIO())  # type: ignore
+    renderer = fig.__dict__.get("_cachedRenderer")
+    return renderer  # type: ignore
 
 
 def get_axes_size_inches(ax: Axes | None = None) -> Area:
@@ -1730,6 +1722,7 @@ def make_me_nice(
         :include-source:
     """
     fig = fig or plt.gcf()
+    fig.canvas.draw()
     axs = _get_sorted_axes_grid(fig)
     nrows, ncols = axs.shape
     renderer = _get_renderer(fig)
@@ -1883,6 +1876,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
     """
     Layout engine with absoulte axes sizes in inches.
     """
+
+    _colorbar_gridspec = False
+    _adjust_compatible = False
 
     def __init__(
         self,
