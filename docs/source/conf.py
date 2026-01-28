@@ -16,9 +16,10 @@ sys.path.append(os.path.abspath("../../src/"))
 
 
 project = "MPL-Utils"
-copyright = "2025, Max Kircher"
+copyright = "2026, Max Kircher"
 author = "Max Kircher"
 release = __version__
+print(__version__)
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
