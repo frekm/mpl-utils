@@ -130,28 +130,6 @@ okabe_ito_accent = _OkabeItoAccent(
 )
 
 
-_CM_ATOM = mcolors.LinearSegmentedColormap.from_list(
-    "atom",
-    [
-        (0.0, (0.5, 1.0, 1.0)),
-        (0.3, (0.0, 0.0, 1.0)),
-        (0.7, (1.0, 0.0, 0.0)),
-        (1.0, (1.0, 1.0, 0.0)),
-    ],
-)
-matplotlib.colormaps.register(_CM_ATOM, force=True)
-_CM_ATOM_FROM_WHITE = mcolors.LinearSegmentedColormap.from_list(
-    "atom_from_white",
-    [
-        (0.0, (1.0, 1.0, 1.0)),
-        (0.065, (0.5, 1.0, 1.0)),
-        (0.3, (0.0, 0.0, 1.0)),
-        (0.7, (1.0, 0.0, 0.0)),
-        (1.0, (1.0, 1.0, 0.0)),
-    ],
-)
-matplotlib.colormaps.register(_CM_ATOM_FROM_WHITE, force=True)
-
 _CM_BLOR = mcolors.LinearSegmentedColormap.from_list(
     "blor",
     [
@@ -163,12 +141,10 @@ matplotlib.colormaps.register(_CM_BLOR, force=True)
 
 
 class _ColorMaps(NamedTuple):
-    atom: mcolors.LinearSegmentedColormap
-    atom_from_white: mcolors.LinearSegmentedColormap
     blor: mcolors.LinearSegmentedColormap
 
 
-colormaps = _ColorMaps(_CM_ATOM, _CM_ATOM_FROM_WHITE, _CM_BLOR)
+colormaps = _ColorMaps(_CM_BLOR)
 
 _FONT_SCALINGS = {
     "xx-small": 0.579,
