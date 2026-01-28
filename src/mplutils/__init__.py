@@ -17,6 +17,7 @@ from ._layout import (
     add_colorbar,
     align_axes_horizontally,
     align_axes_vertically,
+    update_colorbars,
 )
 
 from ._misc import (

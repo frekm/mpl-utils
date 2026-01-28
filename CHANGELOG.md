@@ -1,5 +1,6 @@
-# v0.2.1
+# v0.3.0
 - Update documentation
+- Add `update_colorbars`
 
 # v0.2.0
 - Add `convert_to_steps`
