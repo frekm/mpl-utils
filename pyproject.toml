@@ -6,7 +6,7 @@ description = """
     A collection of utility methods to manipulate matplotlib figures.
 """
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: MIT",
