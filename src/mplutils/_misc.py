@@ -267,3 +267,54 @@ def for_pcolormesh(
         raise ValueError(msg)
 
     return xedges, yedges, z_
+
+
+def convert_to_steps(
+    x: ArrayLike,
+    y: ArrayLike,
+    start_at: float | Literal["auto"] = 0.0,
+    xlim_lower: float | None = None,
+    xlim_upper: float | None = None,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """
+    Convert (x,y) data to steps.
+
+    Parameters
+    ----------
+    x : array_like
+        *x* data, corresponding to the centers of the resulting steps.
+
+    y : array_like
+        corresponding *y* data.
+
+    start_at : float or "auto", default 0.0
+        Start/end steps at this value.
+
+        If "auto", start (end) at first (last) *y* value.
+
+    xlim_lower, ylim_uppper : float, optional
+        Lower/upper limits of the range.
+
+        At least one limit must be provided if *x* data doesn't have constant
+        spacing. If both lower and upper limits are provided, the lower one
+        will be prioritized.
+
+    Returns
+    -------
+    x, y : ndarray
+        Data corresponding to steps.
+
+    Examples
+    --------
+
+    .. plot:: _examples/misc/convert_to_steps.py
+        :include-source:
+    """
+    y = np.asarray(y)
+    edges = centers_to_edges(x, xlim_lower, xlim_upper)
+    x_ = np.repeat(edges, 2)
+    y_ = np.empty_like(x_, dtype=np.float64)
+    y_[0] = start_at if start_at != "auto" else y[0]
+    y_[1:-1] = np.repeat(y, 2)
+    y_[-1] = start_at if start_at != "auto" else y[-1]
+    return x_, y_

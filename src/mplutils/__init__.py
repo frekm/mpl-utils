@@ -23,6 +23,7 @@ from ._misc import (
     savefig,
     for_pcolormesh,
     centers_to_edges,
+    convert_to_steps,
 )
 
 from ._themes import (

@@ -16,6 +16,7 @@ API reference
     align_axes_vertically
     align_axes_horizontally
     centers_to_edges
+    convert_to_steps
     crop_colormap
     dotted
     dash_dotted
