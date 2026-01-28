@@ -321,7 +321,7 @@ def add_colorbar(
     Add a colorbar to `axes`.
 
     Create a new :class:`matplotlib.axes.Axes` next to `ax` with the same height
-    (or width), then plot a :class:`matplotlib.color.Colorbar`` in it.
+    (or width), then plot a :class:`matplotlib.colorbar.Colorbar` in it.
 
     If you change the figure-layout after the fact, you can update the colorbar
     position with :func:`.update_colorbars`.

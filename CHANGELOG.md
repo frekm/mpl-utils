@@ -1,3 +1,6 @@
+# v0.2.1
+- Update documentation
+
 # v0.2.0
 - Add `convert_to_steps`
 - Update documentation
