@@ -8,6 +8,7 @@ from matplotlib.gridspec import SubplotSpec
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import Colorbar
 from matplotlib.transforms import Bbox
+from matplotlib.layout_engine import LayoutEngine
 import itertools
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -1091,7 +1092,7 @@ def _add_margins_inch(
     fw_old, fh_old = fig.get_size_inches()
     fw_new = fw_old + margins_inch.left + margins_inch.right
     fh_new = fh_old + margins_inch.top + margins_inch.bottom
-    fig.set_size_inches(fw_new, fh_new)
+    fig.set_size_inches(fw_new, fh_new, forward=False)
     for (i, j), bbox in np.ndenumerate(bboxes_inch):
         set_axes_position_inch(
             bbox.x0 + margins_inch.left,
@@ -1876,3 +1877,60 @@ def align_axes_horizontally(
     ax.set_position((x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height))
 
     _update_extra_axes()
+
+
+class FixedAxesLayoutEngine(LayoutEngine):
+    """
+    Layout engine with absoulte axes sizes in inches.
+    """
+
+    def __init__(
+        self,
+        *,
+        fix_figwidth: bool = False,
+        margin_pad_pts: ArrayLike = 3.0,
+        margin_pad_ignores_labels: ArrayLike = False,
+        col_pad_pts: ArrayLike = 10.0,
+        col_pad_ignores_labels: ArrayLike = False,
+        row_pad_pts: ArrayLike = 10.0,
+        row_pad_ignores_labels: ArrayLike = False,
+        max_figwidth: float = np.inf,
+        min_runs: int = 2,
+        max_runs: int = 5,
+        log: bool = False,
+    ):
+        self.fix_figwidth = fix_figwidth
+        self.margin_pad_pts = margin_pad_pts
+        self.margin_pad_ignores_labels = margin_pad_ignores_labels
+        self.col_pad_pts = col_pad_pts
+        self.col_pad_ignores_labels = col_pad_ignores_labels
+        self.row_pad_pts = row_pad_pts
+        self.row_pad_ignores_labels = row_pad_ignores_labels
+        self.max_figwidth = max_figwidth
+        self.min_runs = min_runs
+        self.max_runs = max_runs
+        self.log = log
+        self._in_progress = False
+
+    def execute(self, fig):
+        if self._in_progress:
+            return
+
+        self._in_progress = True
+        try:
+            make_me_nice(
+                fig=fig,
+                fix_figwidth=self.fix_figwidth,
+                margin_pad_pts=self.margin_pad_pts,
+                margin_pad_ignores_labels=self.margin_pad_ignores_labels,
+                col_pad_pts=self.col_pad_pts,
+                col_pad_ignores_labels=self.col_pad_ignores_labels,
+                row_pad_pts=self.row_pad_pts,
+                row_pad_ignores_labels=self.row_pad_ignores_labels,
+                max_figwidth=self.max_figwidth,
+                min_runs=self.min_runs,
+                max_runs=self.max_runs,
+                log=self.log,
+            )
+        finally:
+            self._in_progress = False

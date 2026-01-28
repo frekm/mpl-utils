@@ -18,6 +18,7 @@ from ._layout import (
     align_axes_horizontally,
     align_axes_vertically,
     update_colorbars,
+    FixedAxesLayoutEngine,
 )
 
 from ._misc import (
