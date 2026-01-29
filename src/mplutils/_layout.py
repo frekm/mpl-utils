@@ -1,5 +1,14 @@
 import io
-from typing import Optional, TypeVar, Literal, Any, NamedTuple, Type, cast, Final
+from typing import (
+    Optional,
+    TypeVar,
+    Literal,
+    Any,
+    NamedTuple,
+    Type,
+    cast,
+    Final,
+)
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure, SubFigure
@@ -13,6 +22,12 @@ import itertools
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from dataclasses import dataclass
+
+from ._misc import Array
+
+T = TypeVar("T")
+
+# TODO add fix_figwidth keyword to add_colpad, add_margins, etc...
 
 
 MM_PER_INCH: Final = 25.4
@@ -42,33 +57,6 @@ def get_colorbar_location(cax: Axes, parent_axes: list[Axes]):
         return "right" if dx > 0 else "left"
     else:
         return "top" if dy > 0 else "bottom"
-
-
-@dataclass
-class _Colorbar:
-    colorbar: Colorbar
-    parent_ax: Axes
-    location: Literal["left", "right", "top", "bottom"]
-    thickness_inch: float
-    pad_inch: float
-
-    @property
-    def ax(self) -> Axes:
-        return self.colorbar.ax
-
-
-class _ColorbarManager:
-    def __init__(self) -> None:
-        self.colorbars: list[_Colorbar] = []
-
-
-_colorbar_manager = _ColorbarManager()
-
-from ._misc import Array
-
-T = TypeVar("T")
-
-# TODO add fix_figwidth keyword to add_colpad, add_margins, etc...
 
 
 class Quadrants(NamedTuple):
@@ -285,53 +273,6 @@ def _get_topmost_figure(ax: Axes) -> Figure:
     return cast(Figure, fig)
 
 
-def update_colorbars(fig: None | Figure = None) -> None:
-    """
-    Re-align colorbars to their parent axes.
-
-    Only re-aligns colorbars added by :func:`.add_colorbar`.
-
-    Parameters
-    ----------
-    fig : :class:`matplotlib.figure.Figure`, optional
-        If None, use last active figure.
-    """
-    fig = fig or plt.gcf()
-    fig_width_inch, fig_height_inch = fig.get_size_inches()
-    axs = fig.get_axes()
-
-    for colorbar in _colorbar_manager.colorbars:
-        # check that colorbar is actually in the figure. If not: Skip
-        if colorbar.ax not in axs:
-            continue
-
-        bbox_ax = colorbar.parent_ax.get_position()
-
-        if colorbar.location in ("left", "right"):
-            pad = colorbar.pad_inch / fig_width_inch
-            thickness = colorbar.thickness_inch / fig_width_inch
-        elif colorbar.location in ("top", "bottom"):
-            pad = colorbar.pad_inch / fig_height_inch
-            thickness = colorbar.thickness_inch / fig_height_inch
-
-        if colorbar.location == "left":
-            colorbar.ax.set_position(
-                (bbox_ax.x0 - pad - thickness, bbox_ax.y0, thickness, bbox_ax.height)
-            )
-        if colorbar.location == "right":
-            colorbar.ax.set_position(
-                (bbox_ax.x1 + pad, bbox_ax.y0, thickness, bbox_ax.height)
-            )
-        if colorbar.location == "top":
-            colorbar.ax.set_position(
-                (bbox_ax.x0, bbox_ax.y1 + pad, bbox_ax.width, thickness)
-            )
-        if colorbar.location == "bottom":
-            colorbar.ax.set_position(
-                (bbox_ax.x0, bbox_ax.y0 - pad - thickness, bbox_ax.width, thickness)
-            )
-
-
 def add_colorbar(
     mappable: ScalarMappable,
     ax: Optional[Axes] = None,
@@ -447,20 +388,12 @@ def add_colorbar(
 
     colorbar = fig.colorbar(mappable, cax=colorbar_axes, location=location)
 
-    _colorbar_manager.colorbars.append(
-        _Colorbar(colorbar, ax, location, thickness * fig_size, pad * fig_size)
-    )
-
     if_any_frame_visible = False
     for t in [f"axes.spines.{l}" for l in ["left", "right", "top", "bottom"]]:
         if_any_frame_visible = if_any_frame_visible or plt.rcParams[t]
     colorbar.outline.set_visible(if_any_frame_visible)  # type: ignore
     plt.sca(previous_current_axes)
     return colorbar
-
-
-def _update_extra_axes():
-    update_colorbars()
 
 
 def _process_marginslike_arg(arg: ArrayLike) -> Quadrants:
@@ -518,6 +451,16 @@ def _get_renderer(fig: Optional[Figure]) -> RendererBase:
     return renderer  # type: ignore
 
 
+# class Config(TypedDict, total=False):
+#     fix_figwidth: bool
+#     margin_pad_pts: ArrayLike
+#     margin_pad_ignores_labels: bool | tuple[bool, ...]
+
+
+# class Foo:
+#     def __init__(self, **kwargs: Unpack[Config]): ...
+
+
 class FixedAxesLayoutEngine(LayoutEngine):
     """
     Layout engine with absoulte axes sizes in inches.
@@ -553,12 +496,17 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self.max_runs = max_runs
         self.log = log
         self._in_progress = False
+        self._axes_grid = None  # will update every time execute is called
+        self._colorbars: list[FixedAxesLayoutEngine._Colorbar] = []
 
     def execute(self, fig):
         if self._in_progress:
             return
-
         self._in_progress = True
+
+        self._axes_grid = self._get_sorted_axes_grid(fig)
+        self._colorbars = self._get_list_of_colorbars(fig)
+
         try:
             self.make_me_nice(
                 fig=fig,
@@ -576,6 +524,53 @@ class FixedAxesLayoutEngine(LayoutEngine):
             )
         finally:
             self._in_progress = False
+            self._axes_grid = None
+            self._colorbars = []
+
+    @dataclass
+    class _Colorbar:
+        colorbar: Colorbar
+        parent_ax: Axes
+        location: Literal["left", "right", "top", "bottom"]
+        thickness_inch: float
+        pad_inch: float
+
+        @property
+        def ax(self) -> Axes:
+            return self.colorbar.ax
+
+    def _get_list_of_colorbars(
+        self, fig: Figure | None = None
+    ) -> list[FixedAxesLayoutEngine._Colorbar]:
+        output: list[FixedAxesLayoutEngine._Colorbar] = []
+        fig = plt.gcf() if fig is None else fig
+        axs = fig.get_axes()
+        figsize = fig.get_size_inches()
+        for ax in axs:
+            if not _is_colorbar_axes(ax):
+                continue
+            cbar = ax._colorbar  # type: ignore
+            parent = cbar.mappable.axes
+            location = get_colorbar_location(ax, [parent])
+            cax_pos = ax.get_position()
+            par_pos = parent.get_position()
+            if location in ("left", "right"):
+                thickness = cax_pos.width * figsize[0]
+                if location == "right":
+                    pad = (cax_pos.x0 - par_pos.x1) * figsize[0]
+                else:
+                    pad = (par_pos.x0 - cax_pos.x1) * figsize[0]
+            else:
+                thickness = cax_pos.height * figsize[1]
+                if location == "top":
+                    pad = (cax_pos.y0 - par_pos.y1) * figsize[1]
+                else:
+                    pad = (par_pos.y0 - cax_pos.y1) * figsize[1]
+
+            output.append(
+                FixedAxesLayoutEngine._Colorbar(cbar, parent, location, thickness, pad)
+            )
+        return output
 
     def _get_sorted_axes_grid(self, fig: Optional[Figure] = None) -> Array[Axes]:
         """
@@ -604,7 +599,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
         axs_unordered: list[Axes] = []
         for ax in fig.get_axes():
-            if ax.get_label() != _COLORBAR_LABEL:
+            if not _is_colorbar_axes(ax):
                 axs_unordered.append(ax)
 
         # get subplotspecs, ensureing that it is not None
@@ -671,9 +666,12 @@ class FixedAxesLayoutEngine(LayoutEngine):
             valid_anchors = "center", "top", "bottom"
             msg = f"{alignment=}, but it should be one of {valid_anchors}"
             raise ValueError(msg)
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars()
         ax.set_position((bbox_ax.x0, y0, bbox_ax.width, bbox_ax.height))
-
-        _update_extra_axes()
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def align_axes_horizontally(
         self,
@@ -709,9 +707,13 @@ class FixedAxesLayoutEngine(LayoutEngine):
             valid_anchors = "center", "left", "right"
             msg = f"{alignment=}, but it should be one of {valid_anchors}"
             raise ValueError(msg)
-        ax.set_position((x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height))
 
-        _update_extra_axes()
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars()
+        ax.set_position((x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height))
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def get_row_pad_pts(
         self,
@@ -771,7 +773,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
             37.51
         """
         fig = fig or plt.gcf()
-        axs = self._get_sorted_axes_grid()
+        axs = (
+            self._get_sorted_axes_grid() if self._axes_grid is None else self._axes_grid
+        )
         bboxes = self._get_bboxes_inch_grid(axs)
         tbboxes = self._get_tbboxes_inch_grid(axs, _get_renderer(fig))
         if 0 < irow < axs.shape[0]:
@@ -885,7 +889,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
         """
         fig = fig or plt.gcf()
         figsize = Area(*fig.get_size_inches())
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         renderer = _get_renderer(fig)
         bboxes_inch = self._get_bboxes_inch_grid(axs)
         tbboxes_inch = self._get_tbboxes_inch_grid(axs, renderer)
@@ -922,6 +930,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fw_old, fh_old = fig.get_size_inches()
         fw_new = fw_old + margins_inch.left + margins_inch.right
         fh_new = fh_old + margins_inch.top + margins_inch.bottom
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars(fig)
         fig.set_size_inches(fw_new, fh_new, forward=False)
         for (i, j), bbox in np.ndenumerate(bboxes_inch):
             self.set_axes_position_inch(
@@ -931,7 +941,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 bbox.height,
                 axs[i, j],  # type: ignore
             )
-        _update_extra_axes()
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def add_margins_pts(
         self,
@@ -1004,7 +1016,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
         """
         fig = fig or plt.gcf()
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         old_bboxes = self._get_bboxes_inch_grid(axs)
         margins = _process_marginslike_arg(margins_pts) / PTS_PER_INCH
         self._add_margins_inch(margins, axs, old_bboxes, fig)
@@ -1068,6 +1084,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         """
         fw_old, fh_old = fig.get_size_inches()
         fw_new = fw_old + pad_inch
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars()
         fig.set_size_inches(fw_new, fh_old)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
             pad = 0.0 if icol < col else pad_inch
@@ -1078,7 +1096,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 bbox.height,
                 axs[irow, icol],  # type: ignore
             )
-        _update_extra_axes()
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def add_column_pad_pts(
         self,
@@ -1142,7 +1162,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             :include-source:
         """
         fig = fig or plt.gcf()
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         pad = pad_pts / PTS_PER_INCH
         old_bboxes = self._get_bboxes_inch_grid(axs)
         self._add_colpad_inch(icol, pad, axs, old_bboxes, fig)
@@ -1152,6 +1176,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
     ) -> None:
         fw_old, fh_old = fig.get_size_inches()
         fh_new = fh_old + pad_inch
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars()
         fig.set_size_inches(fw_old, fh_new)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
             pad = 0.0 if irow >= row else pad_inch
@@ -1162,7 +1188,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 bbox.height,
                 axs[irow, icol],  # type: ignore
             )
-        _update_extra_axes()
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def add_row_pad_pts(
         self, irow: int, pad_pts: float, fig: None | Figure = None
@@ -1223,7 +1251,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             :include-source:
         """
         fig = fig or plt.gcf()
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         old_bboxes = self._get_bboxes_inch_grid(axs)
         pad = pad_pts / PTS_PER_INCH
         self._add_rowpad_inch(irow, pad, axs, old_bboxes, fig)
@@ -1303,7 +1335,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             34.76
         """
         fig = fig or plt.gcf()
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         bboxes = self._get_bboxes_inch_grid(axs)
         tbboxes = self._get_tbboxes_inch_grid(axs, _get_renderer(fig))
         if 0 < icol < axs.shape[1]:
@@ -1490,7 +1526,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
         """
         fig = fig or plt.gcf()
         fig.canvas.draw()
-        axs = self._get_sorted_axes_grid(fig)
+        axs = (
+            self._get_sorted_axes_grid(fig)
+            if self._axes_grid is None
+            else self._axes_grid
+        )
         nrows, ncols = axs.shape
         renderer = _get_renderer(fig)
         original_figwidth = fig.get_figwidth()
@@ -1746,9 +1786,12 @@ class FixedAxesLayoutEngine(LayoutEngine):
         elif anchor_split[1] == "center":
             new_pos.x0 = old_pos.x0 + (old_pos.width - new_pos.width) / 2.0
 
+        if not self._in_progress:
+            self._colorbars = self._get_list_of_colorbars()
         ax.set_position((new_pos.x0, new_pos.y0, new_pos.width, new_pos.height))
-
-        _update_extra_axes()
+        self.update_colorbars()
+        if not self._in_progress:
+            self._colorbars = []
 
     def get_axes_position_inch(self, ax: None | Axes = None) -> Bbox:
         """
@@ -1859,7 +1902,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         those.
         """
         ax = ax or plt.gca()
-        fig = ax.get_figure()
+        fig = _get_topmost_figure(ax)
         if fig is None:
             raise ValueError("ax must be part of a figure")
         dpi = fig.get_dpi()
@@ -1871,7 +1914,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
             [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
         )
 
-        for cb in _colorbar_manager.colorbars:
+        cbars = self._colorbars if self._in_progress else self._get_list_of_colorbars()
+
+        for cb in cbars:
             if cb.parent_ax is ax:
                 tbbox_cb = cb.ax.get_tightbbox(renderer)
                 assert tbbox_cb
@@ -1968,3 +2013,51 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 axs[i, j], renderer=renderer
             )
         return tbboxes_inch
+
+    def update_colorbars(self, fig: Figure | None = None) -> None:
+        """
+        Re-align colorbars to their parent axes.
+
+        Only re-aligns colorbars added by :func:`.add_colorbar`.
+
+        Parameters
+        ----------
+        fig : :class:`matplotlib.figure.Figure`
+        """
+        fig = plt.gcf() if fig is None else fig
+        fig_width_inch, fig_height_inch = fig.get_size_inches()
+
+        cbars = self._colorbars
+
+        for colorbar in cbars:
+
+            bbox_ax = colorbar.parent_ax.get_position()
+
+            if colorbar.location in ("left", "right"):
+                pad = colorbar.pad_inch / fig_width_inch
+                thickness = colorbar.thickness_inch / fig_width_inch
+            elif colorbar.location in ("top", "bottom"):
+                pad = colorbar.pad_inch / fig_height_inch
+                thickness = colorbar.thickness_inch / fig_height_inch
+
+            if colorbar.location == "left":
+                colorbar.ax.set_position(
+                    (
+                        bbox_ax.x0 - pad - thickness,
+                        bbox_ax.y0,
+                        thickness,
+                        bbox_ax.height,
+                    )
+                )
+            if colorbar.location == "right":
+                colorbar.ax.set_position(
+                    (bbox_ax.x1 + pad, bbox_ax.y0, thickness, bbox_ax.height)
+                )
+            if colorbar.location == "top":
+                colorbar.ax.set_position(
+                    (bbox_ax.x0, bbox_ax.y1 + pad, bbox_ax.width, thickness)
+                )
+            if colorbar.location == "bottom":
+                colorbar.ax.set_position(
+                    (bbox_ax.x0, bbox_ax.y0 - pad - thickness, bbox_ax.width, thickness)
+                )

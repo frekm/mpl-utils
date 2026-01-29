@@ -5,7 +5,6 @@ from ._layout import (
     Area,
     Quadrants,
     add_colorbar,
-    update_colorbars,
     FixedAxesLayoutEngine,
 )
 
