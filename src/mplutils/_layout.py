@@ -23,6 +23,27 @@ PTS_PER_MM: Final = PTS_PER_INCH / MM_PER_INCH
 _COLORBAR_LABEL: Final = "mplutils colorbar axes"
 
 
+def _is_colorbar_axes(ax: Axes):
+    return hasattr(ax, "_colorbar")
+
+
+def get_colorbar_location(cax: Axes, parent_axes: list[Axes]):
+    cax_bb = cax.get_position()
+
+    parent_bb = Bbox.union([ax.get_position() for ax in parent_axes])
+
+    cx, cy = cax_bb.x0 + cax_bb.width / 2, cax_bb.y0 + cax_bb.height / 2
+    px, py = parent_bb.x0 + parent_bb.width / 2, parent_bb.y0 + parent_bb.height / 2
+
+    dx = cx - px
+    dy = cy - py
+
+    if abs(dx) > abs(dy):
+        return "right" if dx > 0 else "left"
+    else:
+        return "top" if dy > 0 else "bottom"
+
+
 @dataclass
 class _Colorbar:
     colorbar: Colorbar
