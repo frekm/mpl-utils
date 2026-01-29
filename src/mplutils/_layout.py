@@ -1,14 +1,5 @@
 import io
-from typing import (
-    Optional,
-    TypeVar,
-    Literal,
-    Any,
-    NamedTuple,
-    Type,
-    cast,
-    Final,
-)
+from typing import Optional, TypeVar, Literal, Any, NamedTuple, Type, cast, Final
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure, SubFigure
@@ -22,6 +13,7 @@ import itertools
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from dataclasses import dataclass
+from functools import wraps
 
 from ._misc import Array
 
@@ -35,14 +27,759 @@ PTS_PER_INCH: Final = 72.0
 PTS_PER_MM: Final = PTS_PER_INCH / MM_PER_INCH
 
 
-_COLORBAR_LABEL: Final = "mplutils colorbar axes"
+def _inherit_doc(parent_method):
+    def decorator(func):
+        # We use wraps to keep the original func's identity,
+        # then manually overwrite the docstring.
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        wrapper.__doc__ = parent_method.__doc__
+        return wrapper
+
+    return decorator
+
+
+def _validate_and_get_layout_engine(fig: Figure | None) -> FixedAxesLayoutEngine:
+    fig = fig or plt.gcf()
+    engine = fig.get_layout_engine()
+    if not isinstance(engine, FixedAxesLayoutEngine):
+        msg = f"Figure layout engine must be 'FixedAxesLayoutEngine', but is '{type(engine)}'"
+        raise TypeError(msg)
+    return engine
+
+
+def add_column_pad_pts(icol: int, pad_pts: float, fig: None | Figure = None) -> None:
+    """
+    Add padding *after* column `icol`.
+
+    .. note::
+
+        `add_column_pad_pts` will change the width of the figure. If you do not want
+        that, use :func:`.make_me_nice` instead.
+
+    .. tip::
+
+        Instead of manually formatting the column padding, use :func:`.make_me_nice`!
+
+    Parameters
+    ----------
+    icol : int
+        The column after which padding is inserted.
+
+        ``icol=0`` adds padding *before* the first column (i.e., the left
+        figure margin), ``icol=1`` after the first column, ...
+
+    pad_pts : float
+        The padding that is added in pts.
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If None, use last active figure.
+
+    See also
+    --------
+    make_me_nice
+    add_margins_pts
+    get_margins_pts
+    get_column_pad_pts
+    add_row_pad_pts
+    get_row_pad_pts
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    Examples
+    --------
+    Create two axes and get their current padding using :func:`get_column_pad_pts`::
+
+        >>> plt.subplot(121)
+        >>> plt.subplot(122)
+        >>> mplu.get_column_pad_pts(1)
+        1.71
+
+    Add 5 pts to the padding::
+
+        >>> mplu.add_column_pad_pts(1, 5)
+        >>> mplu.get_column_pad_pts(1)
+        6.71
+
+    The below example shows how to remove any extra padding in-between columns:
+
+    .. plot:: _examples/layout/add_column_pad_pts.py
+        :include-source:
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._add_column_pad_pts(icol, pad_pts, fig)
+
+
+def align_axes_vertically(
+    ax: Axes,
+    reference_ax: Axes,
+    alignment: Literal["center", "top", "bottom"] = "center",
+) -> None:
+    """
+    Set horizontal position of `ax` relative to `reference_ax`.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`
+        Axes to reposition.
+
+    reference_ax : :class:`matplotlib.axes.Axes`
+        Reference axes.
+
+    alignment : {``"center"``, ``"top"``, ``"bottom"``}, default ``"center"``
+        Which reference axis to take from `reference_ax`.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+    """
+    fig = _get_topmost_figure(ax)
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._align_axes_vertically(ax, reference_ax, alignment)
+
+
+def align_axes_horizontally(
+    ax: Axes,
+    reference_ax: Axes,
+    alignment: Literal["center", "left", "right"] = "center",
+) -> None:
+    """
+    Set horizontal position of `ax` relative to `reference_ax`.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`
+        Axes to reposition.
+
+    reference_ax : :class:`matplotlib.axes.Axes`
+        Reference axes.
+
+    alignment : {``"center"``, ``"left"``, ``"right"``}, default ``"center"``
+        Which reference axis to take from `reference_ax`.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+    """
+    fig = _get_topmost_figure(ax)
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._align_axes_horizontally(ax, reference_ax, alignment)
+
+
+def get_row_pad_pts(
+    irow: int,
+    ignore_labels: bool = False,
+    fig: None | Figure = None,
+) -> float:
+    """
+    Get current padding in-between two rows in pts.
+
+    Parameters
+    ----------
+    irow : int
+        Index of row. Starts at 0. The padding in-between row `irow-1` and
+        `irow` will be retrieved. If 0, get top figure margin. If
+        *total-number-of-rows*, get bottom figure margin.
+
+    ignore_labels : bool, default False
+        If ``True``, ignore labels, ticklabels, etc of the axes (typically this means
+        that the returned padding will be larger).
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If None, use last active figure.
+
+    Returns
+    -------
+    pad_pts : float
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    See also
+    --------
+    make_me_nice
+    add_margins_pts
+    get_margins_pts
+    add_column_pad_pts
+    get_column_pad_pts
+    add_row_pad_pts
+
+    Examples
+    --------
+    Create two axes and get their current padding using :func:`get_row_pad_pts`::
+
+        >>> plt.subplot(211)
+        >>> plt.subplot(212)
+        >>> mplu.get_row_pad_pts(1)
+        3.15
+
+    Ignore axis labels, ticklabels, etc::
+
+        >>> mplu.get_row_pad_pts(1, ignore_labels=True)
+        24.19
+
+    Get the row padding *before* the first row (i.e., the top figure margin)::
+
+        >>> mplu.get_row_pad_pts(0)
+        37.51
+        >>> mplu.get_margins.pts().top
+        37.51
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._get_row_pad_pts(irow, ignore_labels, fig)
+
+
+def get_margins_pts(
+    ignore_labels: ArrayLike = False,
+    fig: None | Figure = None,
+) -> Quadrants:
+    """
+    Get the margins of the figure in pts.
+
+    Parameters
+    ----------
+    ignore_labels : array_like, default False
+        If True, ignore labels, ticklabels, etc of the axes.
+
+        bool:
+            Ignore/consider all labels.
+        (bool, bool)
+            Ignore/consider (top, bottom), (right, left) labels separately.
+        (bool, bool, bool)
+            Ignore/consider top, (right, left), bottom labels separately.
+        (bool, bool, bool)
+            Ignore/consider all sides separately.
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If ``None``, use last active figure.
+
+    Returns
+    -------
+    margins_pts : :class:`.Quadrants`
+        (top, right, bottom, left) margins
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    Examples
+    --------
+
+    Create a :class:`matplotlib.axes.Axes`::
+
+        >>> ax = plt.subplot()
+
+    Get margins, ignoring all labels, etc::
+
+        >>> mplu.get_margins_pts()
+        Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
+
+    Get margins, taking labels, etc, into account::
+
+        >>> mplu.get_margins_pts(ignore_labels=False)
+        Quadrants(top=41.47, right=46.07, bottom=38.01, left=57.6)
+
+    Get margins, taking only labels, etc, from the top and bottom margins into account::
+
+        >>> mplu.get_margins_pts(ignore_labels=(False, True))
+        Quadrants(top=37.51, right=46.07, bottom=20.93, left=57.6)
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._get_margins_pts(ignore_labels, fig)
+
+
+def add_margins_pts(
+    margins_pts: ArrayLike,
+    fig: None | Figure = None,
+) -> None:
+    """
+    Add margins to the figure.
+
+    .. note::
+
+        `add_margins_pts` will change the width of the figure. If you do not want that,
+        use :func:`.make_me_nice` instead.
+
+    .. tip::
+
+        Instead of manually formatting the margins, use :func:`.make_me_nice`!
+
+    Parameters
+    ----------
+    margins_pts : array_like
+        New margin(s) in pts.
+
+        float:
+            Add the same margin to top, right, bottom, left
+        (float, float):
+            Add the same margin to (top, bottom) and (right, left)
+        (float, float, float):
+            Add the same margins to top, (right, left), bottom
+        (float, float, float, float):
+            Add different margins to each side.
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If ``None``, use last active figure.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    See also
+    --------
+    make_me_nice
+    get_margins_pts
+    add_column_pad_pts
+    get_column_pad_pts
+    add_row_pad_pts
+    get_row_pad_pts
+
+    Examples
+    --------
+    Create an axes and get its current margins using :func:`.get_margins_pts`::
+
+        >>> ax = plt.subplot()
+        >>> mplu.get_margins_pts()
+        Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
+
+    Add 5 pts to all margins::
+
+        >>> mplu.add_margins_pts(5)
+        >>> mplu.get_margins_pts()
+        Quadrants(top=42.51, right=43.16, bottom=25.93, left=39.75)
+
+    Remove all "extra" margins of the figure::
+
+        >>> margins = mplu.get_margins_pts()
+        >>> mplu.add_margins_pts(-margins)
+        >>> mplu.get_margins_pts(ignore_labels=False)
+        Quadrants(top=0.0, right=0.0, bottom=0.0, left=0.0)
+
+    As the following plot shows, this removes the extra whitespace around the axes:
+
+    .. plot:: _examples/layout/add_margins_pts.py
+        :include-source:
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._add_margins_pts(margins_pts, fig)
+
+
+def add_row_pad_pts(irow: int, pad_pts: float, fig: None | Figure = None) -> None:
+    """
+    Add padding *after* row `irow`.
+
+    .. note::
+
+        `add_row_pad_pts` will change the height of the figure.
+
+    .. tip::
+
+        Instead of manually formatting the row padding, use :func:`.make_me_nice`!
+
+
+    Parameters
+    ----------
+    irow : int
+        The row after which padding is inserted. Rows are counted starting from the top.
+
+        ``irow=0`` adds padding *before* the first row (i.e., the top
+        figure margin), ``irow=1`` after the first row, ...
+
+    pad_pts : float
+        The padding that is added in pts.
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If None, use last active figure.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    See also
+    --------
+    make_me_nice
+    add_margins_pts
+    get_margins_pts
+    get_column_pad_pts
+    add_row_pad_pts
+    get_row_pad_pts
+
+    Examples
+    --------
+    Create two axes and get their current padding using :func:`get_column_pad_pts`::
+
+        >>> plt.subplot(121)
+        >>> plt.subplot(122)
+        >>> mplu.get_column_pad_pts(1)
+        1.71
+
+    Add 5 pts to the padding::
+
+        >>> mplu.add_column_pad_pts(1, 5)
+        >>> mplu.get_column_pad_pts(1)
+        6.71
+
+    The below example shows how to remove any extra padding in-between columns:
+
+    .. plot:: _examples/layout/add_row_pad_pts.py
+        :include-source:
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._add_row_pad_pts(irow, pad_pts, fig)
+
+
+def get_column_pad_pts(
+    icol: int, ignore_labels: bool = False, fig: None | Figure = None
+) -> float:
+    """
+    Get current padding in-between two columns in pts.
+
+    Parameters
+    ----------
+    icol : int
+        Index of column. Starts at 0. The padding in-between column `icol-1` and
+        `icol` will be retrieved. If 0, get left figure margin. If
+        <total-number-of-columns>, get right figure margin.
+
+    ignore_labels : bool, default False
+        If ``True``, ignore labels, ticklabels, etc of the axes (typically this means
+        that the returned padding will be larger).
+
+    fig : :class:`matplotlib.figure.Figure`, optional
+        If None, use last active figure.
+
+    Returns
+    -------
+    pad_pts : float
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    See also
+    --------
+    make_me_nice
+    add_margins_pts
+    get_margins_pts
+    add_column_pad_pts
+    add_row_pad_pts
+    get_row_pad_pts
+
+
+    Examples
+    --------
+    Create two axes and get their current padding using :func:`get_column_pad_pts`::
+
+        >>> plt.subplot(121)
+        >>> plt.subplot(122)
+        >>> mplu.get_column_pad_pts(1)
+        1.71
+
+    Ignore axis labels, ticklabels, etc::
+
+        >>> mplu.get_column_pad_pts(1, ignore_labels=True)
+        32.47
+
+    Get the column padding *before* the first column (i.e., the left figure margin)::
+
+        >>> mplu.get_column_pad_pts(0)
+        34.76
+        >>> mplu.get_margins.pts().left
+        34.76
+    """
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._get_column_pad_pts(icol, ignore_labels, fig)
+
+
+def get_axes_size_inches(ax: Axes | None = None) -> Area:
+    """
+    Get the size of `ax` in inches.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.pyplot.Axes`, optional
+        If ``None``, change last active axes.
+
+    Returns
+    -------
+    area : :class:`.Area`
+        Area wrapped in a NamedTuple (width, height) in inches.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    Examples
+    --------
+
+    ::
+
+        >>> ax = plt.subplot()
+        >>> size = mplu.get_axes_size_inches(ax)
+        >>> size.width
+        4.96
+        >>> size.height
+        3.69
+    """
+    ax = ax or plt.gca()
+    fig = _get_topmost_figure(ax)
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._get_axes_size_inches(ax)
+
+
+def set_axes_size_inches(
+    size_inch: ArrayLike,
+    aspect: Literal["auto"] | float = "auto",
+    ax: None | Axes = None,
+    anchor: Literal[
+        "center",
+        "left",
+        "right",
+        "upper",
+        "lower",
+        "upper left",
+        "upper right",
+        "upper center",
+        "center left",
+        "center right",
+        "center center",
+        "lower left",
+        "lower right",
+        "lower center",
+    ] = "center",
+) -> None:
+    """
+    Set physical size of `ax`.
+
+    Parameters
+    ----------
+    size_inch : float or (float, float)
+        New width and height of the graph-area of `ax` (that is, excluding
+        the axis labels, titles, etc).
+
+        float:
+            Change width and height to the same value, unless `aspect` is not "auto".
+            Then, change height to `size_inch` × `aspect`.
+
+        (float, float)
+            (width, height).
+
+    aspect : "auto" or float, default "auto"
+        Control the aspect ratio.
+
+        "auto":
+            Determine aspect ratio using `size_inch`.
+
+        float:
+            Set aspect ratio of `ax` to height / width.
+
+            If `size_inch` is a tuple and ``size_inch[1] / size_inch[0] != aspect``,
+            raises a ValueError.
+
+    ax : :class:`matplotlib.axes.Axes`, optional
+        If None, change last active axes.
+
+    anchor : {"left", "right", "upper", "lower", "upper left", "upper right", \
+"upper center", "center left", "center right", "center center", "lower left", \
+"lower right", "lower center"}, default "center"
+        Anchor point of `ax`.
+
+        E.g., "upper left" means the upper left corner of `ax` stays fixed.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    Examples
+    --------
+    Create an axes and check its size::
+
+        >>> ax = plt.subplot()
+        >>> mplu.get_axes_size_inches()
+        Area(width=4.96, height=3.7)
+    
+    Set size to (width, height)::
+
+        >>> mplu.set_axes_size_inches((4, 3))
+        >>> mplu.get_axes_size_inches()
+        Area(width=4.0, height=3.0)
+
+    Set size to (width, width)::
+
+        >>> mplu.set_axes_size_inches(4)
+        >>> mplu.get_axes_size_inches()
+        Area(width=4.0, height=4.0)
+
+    Set size to (width, width × aspect)::
+
+        >>> mplu.set_axes_size_inches(4, 4 / 3)
+        >>> mplu.get_axes_size_inches()
+        Area(width=4.0, height=3.0)
+    """
+    ax = ax or plt.gca()
+    fig = _get_topmost_figure(ax)
+    engine = _validate_and_get_layout_engine(fig)
+    return engine._set_axes_size_inches(size_inch, aspect, ax, anchor)
+
+
+def get_axes_position_inch(ax: None | Axes = None) -> Bbox:
+    """
+    Get the bounding box of `ax` in inches, excluding labels, titles, etc.
+
+    Wrapper function for :meth:`matplotlib.axes.Axes.get_position()` which
+    converts it to inches.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`, optional
+        If ``None``, use last active axes.
+
+    Returns
+    -------
+    bbox : :class:`matplotlib.transforms.Bbox`
+        The bounding box of just the graph-area of `ax` in inches.
+
+        Useful members:
+
+        ``bbox.x0``, ``bbox.x1``
+            Location of the left and right edge in inches. Negative values are
+            left of the figure left edge.
+
+        ``bbox.y0``, ``bbox.y1``
+            Lower and upper edge in inches. Negative values are below the
+            figure bottom edge.
+
+        ``bbox.width``, ``bbox.height``
+            Width and height of the graph-area of `ax`.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+    """
+    ax = ax or plt.gca()
+    engine = _validate_and_get_layout_engine(_get_topmost_figure(ax))
+    return engine._get_axes_position_inch(ax)
+
+
+def set_axes_position_inch(
+    x0_inch: float,
+    y0_inch: float,
+    width_inch: float,
+    height_inch: float,
+    ax: None | Axes = None,
+) -> None:
+    """
+    Update the axes position using aboslute (instead of relative) units.
+
+    Parameters
+    ----------
+    x0_inch, y0_inch : float
+        The new origin.
+
+    width_inch, height_inch : float
+        The new dimensions
+
+    ax : :class:`matplotlib.axes.Axes`, optional
+        If ``None``, use last active axes.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+    """
+    ax = ax or plt.gca()
+    engine = _validate_and_get_layout_engine(_get_topmost_figure(ax))
+    return engine._set_axes_position_inch(x0_inch, y0_inch, width_inch, height_inch, ax)
+
+
+def get_axes_tightbbox_inch(
+    ax: None | Axes = None, renderer: None | RendererBase = None
+) -> Bbox:
+    """
+    Get bounding box of `ax` including labels in inches.
+
+    Wrapper function for :meth:`matplotlib.axes.Axes.get_tightbbox()` which
+    converts it to inches.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`, optional
+        If ``None``, use last active axes.
+
+    renderer : :class:`matplotlib.backend_bases.RendererBase`, optional
+        The renderer used to draw the figure.
+
+        Generally not necessary to pass it. If, however, you use
+        a backend that takes a long time to render (e.g., a LuaLaTeX pgf
+        backend), it may increase performance by passing the renderer.
+        Use :func:`.get_renderer` to get your current renderer.
+
+    Returns
+    -------
+    bbox : :class:`matplotlib.transforms.Bbox`
+        The bounding box of `ax` including x/ylabels, titles, etc, in inches.
+
+        Useful members:
+
+        ``bbox.x0``, ``bbox.x1``
+            Location of the left and right edge in inches. Negative values are
+            left of the figure left edge.
+
+        ``bbox.y0``, ``bbox.y1``
+            Lower and upper edge in inches. Negative values are below the
+            figure bottom edge.
+
+        ``bbox.width``, ``bbox.height``
+            Width and height of the `ax`, including labels, titles, etc.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+
+    Notes
+    -----
+    This ignores text elements added to `ax`. In particular, this means if
+    you used :func:`.add_abc` to add labels outside of the graph-area of `ax`,
+    the dimensions returned by ``get_axes_tightbbox_inch`` will not include
+    those.
+    """
+    ax = ax or plt.gca()
+    engine = _validate_and_get_layout_engine(_get_topmost_figure(ax))
+    return engine._get_axes_tightbbox_inch(ax, renderer)
+
+
+def get_axes_margins_inches(ax: Axes | None = None) -> Quadrants:
+    """
+    Get the margins (size of labels, etc) of `ax` in inches.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.pyplot.Axes`, optional
+        If ``None``, change last active axes.
+
+    Returns
+    -------
+    Quadrants : :class:`.Quadrants`
+        (top, right, bottom, left) margins.
+
+    Raises
+    ------
+    TypeError if the layout engine of `fig` is not :class:`.FixedAxesLayoutEngine`
+    """
+    ax = ax or plt.gca()
+    engine = _validate_and_get_layout_engine(_get_topmost_figure(ax))
+    return engine._get_axes_margins_inches(ax)
 
 
 def _is_colorbar_axes(ax: Axes):
     return hasattr(ax, "_colorbar")
 
 
-def get_colorbar_location(cax: Axes, parent_axes: list[Axes]):
+def _get_colorbar_location(cax: Axes, parent_axes: list[Axes]):
     cax_bb = cax.get_position()
 
     parent_bb = Bbox.union([ax.get_position() for ax in parent_axes])
@@ -384,7 +1121,7 @@ def add_colorbar(
         x0 = bbox.x0
         y0 = bbox.y0 - pad - height
 
-    colorbar_axes = fig.add_axes((x0, y0, width, height), label=_COLORBAR_LABEL)
+    colorbar_axes = fig.add_axes((x0, y0, width, height))
 
     colorbar = fig.colorbar(mappable, cax=colorbar_axes, location=location)
 
@@ -464,6 +1201,95 @@ def _get_renderer(fig: Optional[Figure]) -> RendererBase:
 class FixedAxesLayoutEngine(LayoutEngine):
     """
     Layout engine with absoulte axes sizes in inches.
+
+    Re-arange axes in `fig` such that their margins don't overlap.
+    Also change margins at the edges of the figure such that everything fits.
+    Trim or expand the figure height accordingly.
+
+    **Advantages** over :obj:`matplotlib.pyplot.tight_layout` or
+    `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>`_:
+
+    - Keeps widths constant (either of the axes or of the figure).
+    - Handle colorbars as one may expect (if they were added using
+    :func:`.add_colorbar`).
+    - Updates figure height to optimize white-space for fixed aspect ratios.
+
+    **Disadvantages**:
+
+    - Can only handle `nrows` times `ncols` grids. If you have anything fancy
+    (an axes that spans multiple columns), you cannot use this
+    straightforwardly.
+
+    Parameters
+    ----------
+    margin_pad_pts : array_like, default 3.0
+        float:
+            Add the same margin to top, right, bottom, left
+        (float, float):
+            Add the same margin to (top, bottom) and (right, left)
+        (float, float, float):
+            Add the same margins to top, (right, left), bottom
+        (float, float, float, float):
+            Add different margins to top, right, bottom, left.
+
+    margin_pad_ignores_labels : array_like, default ``False``
+        Boolean controlling if ``margin_pad_pts`` should add padding taking
+        into account axes labels or not.
+
+        Passing more than one value works analogously to `margin_pad_pts`.
+
+    col_pad_pts, row_pad_pts : array_like, default ``10.0``
+        Extra padding between the columns (rows) in pts.
+
+        float:
+            Same padding in-between all columns (rows).
+        (float, ...):
+            Different values in-between all columns. Must have a length
+            of ``ncols-1`` (``nrows-1``).
+
+    col_pad_ignores_labels, row_pad_ignores_labels : array_like, default ``False``
+        Boolean controlling if the padding in-between columns (rows) of axes
+        should ignore axes labels or not.
+
+        Passing more than one value works analogously to `col/row_pad_pts`.
+
+    max_figwidth : float, default ``numpy.inf``
+        Maximum figure width in inches. If the figure width after rescaling exceeds
+        this value, throws a ValueError.
+
+    nruns : int, default 2
+        Minimum number of times the algorithm runs.
+
+        If the layout of the figure changes dramatically during a run, `matplotlib`
+        may adjust the amount of ticklabels displayed. This changes the overall size
+        of axes.
+
+        To account for this change, the algorithm may have to run multiple times.
+
+    log : bool, default False
+        Print logs in the standard output.
+
+    See also
+    --------
+    add_margins_pts
+    get_margins_pts
+    add_column_pad_pts
+    get_column_pad_pts
+    add_row_pad_pts
+    get_row_pad_pts
+
+    Notes
+    -----
+    - Cannot handle a fancy :class:`matplotlib.gridspec.GridSpec`, e.g., where
+    one subplot spans multiple other subplots.
+    If you need one of those, you're on your own.
+
+    Examples
+    --------
+    Remove margins from a single axes while keeping the axes size constant.
+
+    .. plot:: _examples/layout/make_me_nice_default.py
+        :include-source:
     """
 
     _colorbar_gridspec = False
@@ -472,7 +1298,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
     def __init__(
         self,
         *,
-        fix_figwidth: bool = False,
         margin_pad_pts: ArrayLike = 3.0,
         margin_pad_ignores_labels: ArrayLike = False,
         col_pad_pts: ArrayLike = 10.0,
@@ -480,11 +1305,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
         row_pad_pts: ArrayLike = 10.0,
         row_pad_ignores_labels: ArrayLike = False,
         max_figwidth: float = np.inf,
-        min_runs: int = 2,
-        max_runs: int = 5,
+        nruns: int = 2,
         log: bool = False,
     ):
-        self.fix_figwidth = fix_figwidth
         self.margin_pad_pts = margin_pad_pts
         self.margin_pad_ignores_labels = margin_pad_ignores_labels
         self.col_pad_pts = col_pad_pts
@@ -492,9 +1315,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self.row_pad_pts = row_pad_pts
         self.row_pad_ignores_labels = row_pad_ignores_labels
         self.max_figwidth = max_figwidth
-        self.min_runs = min_runs
-        self.max_runs = max_runs
+        self.nruns = nruns
         self.log = log
+
         self._in_progress = False
         self._axes_grid = None  # will update every time execute is called
         self._colorbars: list[FixedAxesLayoutEngine._Colorbar] = []
@@ -508,9 +1331,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self._colorbars = self._get_list_of_colorbars(fig)
 
         try:
-            self.make_me_nice(
+            self._apply(
                 fig=fig,
-                fix_figwidth=self.fix_figwidth,
                 margin_pad_pts=self.margin_pad_pts,
                 margin_pad_ignores_labels=self.margin_pad_ignores_labels,
                 col_pad_pts=self.col_pad_pts,
@@ -518,8 +1340,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 row_pad_pts=self.row_pad_pts,
                 row_pad_ignores_labels=self.row_pad_ignores_labels,
                 max_figwidth=self.max_figwidth,
-                min_runs=self.min_runs,
-                max_runs=self.max_runs,
+                nruns=self.nruns,
                 log=self.log,
             )
         finally:
@@ -551,7 +1372,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 continue
             cbar = ax._colorbar  # type: ignore
             parent = cbar.mappable.axes
-            location = get_colorbar_location(ax, [parent])
+            location = _get_colorbar_location(ax, [parent])
             cax_pos = ax.get_position()
             par_pos = parent.get_position()
             if location in ("left", "right"):
@@ -632,26 +1453,13 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
         return axs  # type: ignore
 
-    def align_axes_vertically(
+    @_inherit_doc(align_axes_vertically)
+    def _align_axes_vertically(
         self,
         ax: Axes,
         reference_ax: Axes,
         alignment: Literal["center", "top", "bottom"] = "center",
     ) -> None:
-        """
-        Set horizontal position of `ax` relative to `reference_ax`.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.axes.Axes`
-            Axes to reposition.
-
-        reference_ax : :class:`matplotlib.axes.Axes`
-            Reference axes.
-
-        alignment : {``"center"``, ``"top"``, ``"bottom"``}, default ``"center"``
-            Which reference axis to take from `reference_ax`.
-        """
         bbox_ax = ax.get_position()
         bbox_ref = reference_ax.get_position()
 
@@ -669,30 +1477,17 @@ class FixedAxesLayoutEngine(LayoutEngine):
         if not self._in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((bbox_ax.x0, y0, bbox_ax.width, bbox_ax.height))
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def align_axes_horizontally(
+    @_inherit_doc(align_axes_horizontally)
+    def _align_axes_horizontally(
         self,
         ax: Axes,
         reference_ax: Axes,
         alignment: Literal["center", "left", "right"] = "center",
     ) -> None:
-        """
-        Set horizontal position of `ax` relative to `reference_ax`.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.axes.Axes`
-            Axes to reposition.
-
-        reference_ax : :class:`matplotlib.axes.Axes`
-            Reference axes.
-
-        alignment : {``"center"``, ``"left"``, ``"right"``}, default ``"center"``
-            Which reference axis to take from `reference_ax`.
-        """
         bbox_ax = ax.get_position()
         bbox_ref = reference_ax.get_position()
 
@@ -711,67 +1506,17 @@ class FixedAxesLayoutEngine(LayoutEngine):
         if not self._in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height))
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def get_row_pad_pts(
+    @_inherit_doc(get_row_pad_pts)
+    def _get_row_pad_pts(
         self,
         irow: int,
         ignore_labels: bool = False,
         fig: None | Figure = None,
     ) -> float:
-        """
-        Get current padding in-between two rows in pts.
-
-        Parameters
-        ----------
-        irow : int
-            Index of row. Starts at 0. The padding in-between row `irow-1` and
-            `irow` will be retrieved. If 0, get top figure margin. If
-            *total-number-of-rows*, get bottom figure margin.
-
-        ignore_labels : bool, default False
-            If ``True``, ignore labels, ticklabels, etc of the axes (typically this means
-            that the returned padding will be larger).
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If None, use last active figure.
-
-        Returns
-        -------
-        pad_pts : float
-
-        See also
-        --------
-        make_me_nice
-        add_margins_pts
-        get_margins_pts
-        add_column_pad_pts
-        get_column_pad_pts
-        add_row_pad_pts
-
-        Examples
-        --------
-        Create two axes and get their current padding using :func:`get_row_pad_pts`::
-
-            >>> plt.subplot(211)
-            >>> plt.subplot(212)
-            >>> mplu.get_row_pad_pts(1)
-            3.15
-
-        Ignore axis labels, ticklabels, etc::
-
-            >>> mplu.get_row_pad_pts(1, ignore_labels=True)
-            24.19
-
-        Get the row padding *before* the first row (i.e., the top figure margin)::
-
-            >>> mplu.get_row_pad_pts(0)
-            37.51
-            >>> mplu.get_margins.pts().top
-            37.51
-        """
         fig = fig or plt.gcf()
         axs = (
             self._get_sorted_axes_grid() if self._axes_grid is None else self._axes_grid
@@ -835,58 +1580,12 @@ class FixedAxesLayoutEngine(LayoutEngine):
         )
         return margins
 
-    def get_margins_pts(
+    @_inherit_doc(get_margins_pts)
+    def _get_margins_pts(
         self,
         ignore_labels: ArrayLike = False,
         fig: None | Figure = None,
     ) -> Quadrants:
-        """
-        Get the margins of the figure in pts.
-
-        Parameters
-        ----------
-        ignore_labels : array_like, default False
-            If True, ignore labels, ticklabels, etc of the axes.
-
-            bool:
-                Ignore/consider all labels.
-            (bool, bool)
-                Ignore/consider (top, bottom), (right, left) labels separately.
-            (bool, bool, bool)
-                Ignore/consider top, (right, left), bottom labels separately.
-            (bool, bool, bool)
-                Ignore/consider all sides separately.
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If ``None``, use last active figure.
-
-        Returns
-        -------
-        margins_pts : :class:`.Quadrants`
-            (top, right, bottom, left) margins
-
-        Examples
-        --------
-
-        Create a :class:`matplotlib.axes.Axes`::
-
-            >>> ax = plt.subplot()
-
-        Get margins, ignoring all labels, etc::
-
-            >>> mplu.get_margins_pts()
-            Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
-
-        Get margins, taking labels, etc, into account::
-
-            >>> mplu.get_margins_pts(ignore_labels=False)
-            Quadrants(top=41.47, right=46.07, bottom=38.01, left=57.6)
-
-        Get margins, taking only labels, etc, from the top and bottom margins into account::
-
-            >>> mplu.get_margins_pts(ignore_labels=(False, True))
-            Quadrants(top=37.51, right=46.07, bottom=20.93, left=57.6)
-        """
         fig = fig or plt.gcf()
         figsize = Area(*fig.get_size_inches())
         axs = (
@@ -934,87 +1633,21 @@ class FixedAxesLayoutEngine(LayoutEngine):
             self._colorbars = self._get_list_of_colorbars(fig)
         fig.set_size_inches(fw_new, fh_new, forward=False)
         for (i, j), bbox in np.ndenumerate(bboxes_inch):
-            self.set_axes_position_inch(
+            self._set_axes_position_inch(
                 bbox.x0 + margins_inch.left,
                 bbox.y0 + margins_inch.bottom,
                 bbox.width,
                 bbox.height,
                 axs[i, j],  # type: ignore
             )
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def add_margins_pts(
-        self,
-        margins_pts: ArrayLike,
-        fig: None | Figure = None,
+    @_inherit_doc(add_margins_pts)
+    def _add_margins_pts(
+        self, margins_pts: ArrayLike, fig: None | Figure = None
     ) -> None:
-        """
-        Add margins to the figure.
-
-        .. note::
-
-            `add_margins_pts` will change the width of the figure. If you do not want that,
-            use :func:`.make_me_nice` instead.
-
-        .. tip::
-
-            Instead of manually formatting the margins, use :func:`.make_me_nice`!
-
-        Parameters
-        ----------
-        margins_pts : array_like
-            New margin(s) in pts.
-
-            float:
-                Add the same margin to top, right, bottom, left
-            (float, float):
-                Add the same margin to (top, bottom) and (right, left)
-            (float, float, float):
-                Add the same margins to top, (right, left), bottom
-            (float, float, float, float):
-                Add different margins to each side.
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If ``None``, use last active figure.
-
-        See also
-        --------
-        make_me_nice
-        get_margins_pts
-        add_column_pad_pts
-        get_column_pad_pts
-        add_row_pad_pts
-        get_row_pad_pts
-
-        Examples
-        --------
-        Create an axes and get its current margins using :func:`.get_margins_pts`::
-
-            >>> ax = plt.subplot()
-            >>> mplu.get_margins_pts()
-            Quadrants(top=37.51, right=38.16, bottom=20.93, left=34.75)
-
-        Add 5 pts to all margins::
-
-            >>> mplu.add_margins_pts(5)
-            >>> mplu.get_margins_pts()
-            Quadrants(top=42.51, right=43.16, bottom=25.93, left=39.75)
-
-        Remove all "extra" margins of the figure::
-
-            >>> margins = mplu.get_margins_pts()
-            >>> mplu.add_margins_pts(-margins)
-            >>> mplu.get_margins_pts(ignore_labels=False)
-            Quadrants(top=0.0, right=0.0, bottom=0.0, left=0.0)
-
-        As the following plot shows, this removes the extra whitespace around the axes:
-
-        .. plot:: _examples/layout/add_margins_pts.py
-            :include-source:
-
-        """
         fig = fig or plt.gcf()
         axs = (
             self._get_sorted_axes_grid(fig)
@@ -1089,78 +1722,24 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fig.set_size_inches(fw_new, fh_old)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
             pad = 0.0 if icol < col else pad_inch
-            self.set_axes_position_inch(
+            self._set_axes_position_inch(
                 bbox.x0 + pad,
                 bbox.y0,
                 bbox.width,
                 bbox.height,
                 axs[irow, icol],  # type: ignore
             )
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def add_column_pad_pts(
+    @_inherit_doc(add_column_pad_pts)
+    def _add_column_pad_pts(
         self,
         icol: int,
         pad_pts: float,
         fig: None | Figure = None,
     ) -> None:
-        """
-        Add padding *after* column `icol`.
-
-        .. note::
-
-            `add_column_pad_pts` will change the width of the figure. If you do not want
-            that, use :func:`.make_me_nice` instead.
-
-        .. tip::
-
-            Instead of manually formatting the column padding, use :func:`.make_me_nice`!
-
-        Parameters
-        ----------
-        icol : int
-            The column after which padding is inserted.
-
-            ``icol=0`` adds padding *before* the first column (i.e., the left
-            figure margin), ``icol=1`` after the first column, ...
-
-        pad_pts : float
-            The padding that is added in pts.
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If None, use last active figure.
-
-        See also
-        --------
-        make_me_nice
-        add_margins_pts
-        get_margins_pts
-        get_column_pad_pts
-        add_row_pad_pts
-        get_row_pad_pts
-
-        Examples
-        --------
-        Create two axes and get their current padding using :func:`get_column_pad_pts`::
-
-            >>> plt.subplot(121)
-            >>> plt.subplot(122)
-            >>> mplu.get_column_pad_pts(1)
-            1.71
-
-        Add 5 pts to the padding::
-
-            >>> mplu.add_column_pad_pts(1, 5)
-            >>> mplu.get_column_pad_pts(1)
-            6.71
-
-        The below example shows how to remove any extra padding in-between columns:
-
-        .. plot:: _examples/layout/add_column_pad_pts.py
-            :include-source:
-        """
         fig = fig or plt.gcf()
         axs = (
             self._get_sorted_axes_grid(fig)
@@ -1181,75 +1760,21 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fig.set_size_inches(fw_old, fh_new)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
             pad = 0.0 if irow >= row else pad_inch
-            self.set_axes_position_inch(
+            self._set_axes_position_inch(
                 bbox.x0,
                 bbox.y0 + pad,
                 bbox.width,
                 bbox.height,
                 axs[irow, icol],  # type: ignore
             )
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def add_row_pad_pts(
+    @_inherit_doc(add_row_pad_pts)
+    def _add_row_pad_pts(
         self, irow: int, pad_pts: float, fig: None | Figure = None
     ) -> None:
-        """
-        Add padding *after* row `irow`.
-
-        .. note::
-
-            `add_row_pad_pts` will change the height of the figure.
-
-        .. tip::
-
-            Instead of manually formatting the row padding, use :func:`.make_me_nice`!
-
-
-        Parameters
-        ----------
-        irow : int
-            The row after which padding is inserted. Rows are counted starting from the top.
-
-            ``irow=0`` adds padding *before* the first row (i.e., the top
-            figure margin), ``irow=1`` after the first row, ...
-
-        pad_pts : float
-            The padding that is added in pts.
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If None, use last active figure.
-
-        See also
-        --------
-        make_me_nice
-        add_margins_pts
-        get_margins_pts
-        get_column_pad_pts
-        add_row_pad_pts
-        get_row_pad_pts
-
-        Examples
-        --------
-        Create two axes and get their current padding using :func:`get_column_pad_pts`::
-
-            >>> plt.subplot(121)
-            >>> plt.subplot(122)
-            >>> mplu.get_column_pad_pts(1)
-            1.71
-
-        Add 5 pts to the padding::
-
-            >>> mplu.add_column_pad_pts(1, 5)
-            >>> mplu.get_column_pad_pts(1)
-            6.71
-
-        The below example shows how to remove any extra padding in-between columns:
-
-        .. plot:: _examples/layout/add_row_pad_pts.py
-            :include-source:
-        """
         fig = fig or plt.gcf()
         axs = (
             self._get_sorted_axes_grid(fig)
@@ -1276,64 +1801,10 @@ class FixedAxesLayoutEngine(LayoutEngine):
             current_pads[icol - 1] = left - right
         return current_pads
 
-    def get_column_pad_pts(
-        self,
-        icol: int,
-        ignore_labels: bool = False,
-        fig: None | Figure = None,
+    @_inherit_doc(get_column_pad_pts)
+    def _get_column_pad_pts(
+        self, icol: int, ignore_labels: bool = False, fig: None | Figure = None
     ) -> float:
-        """
-        Get current padding in-between two columns in pts.
-
-        Parameters
-        ----------
-        icol : int
-            Index of column. Starts at 0. The padding in-between column `icol-1` and
-            `icol` will be retrieved. If 0, get left figure margin. If
-            <total-number-of-columns>, get right figure margin.
-
-        ignore_labels : bool, default False
-            If ``True``, ignore labels, ticklabels, etc of the axes (typically this means
-            that the returned padding will be larger).
-
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If None, use last active figure.
-
-        Returns
-        -------
-        pad_pts : float
-
-        See also
-        --------
-        make_me_nice
-        add_margins_pts
-        get_margins_pts
-        add_column_pad_pts
-        add_row_pad_pts
-        get_row_pad_pts
-
-
-        Examples
-        --------
-        Create two axes and get their current padding using :func:`get_column_pad_pts`::
-
-            >>> plt.subplot(121)
-            >>> plt.subplot(122)
-            >>> mplu.get_column_pad_pts(1)
-            1.71
-
-        Ignore axis labels, ticklabels, etc::
-
-            >>> mplu.get_column_pad_pts(1, ignore_labels=True)
-            32.47
-
-        Get the column padding *before* the first column (i.e., the left figure margin)::
-
-            >>> mplu.get_column_pad_pts(0)
-            34.76
-            >>> mplu.get_margins.pts().left
-            34.76
-        """
         fig = fig or plt.gcf()
         axs = (
             self._get_sorted_axes_grid(fig)
@@ -1370,10 +1841,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
             required_space[irow - 1] = bottom - top
         return required_space
 
-    def make_me_nice(
+    def _apply(
         self,
         fig: None | Figure = None,
-        fix_figwidth: bool = False,
         margin_pad_pts: ArrayLike = 3.0,
         margin_pad_ignores_labels: ArrayLike = False,
         col_pad_pts: ArrayLike = 10.0,
@@ -1381,149 +1851,9 @@ class FixedAxesLayoutEngine(LayoutEngine):
         row_pad_pts: ArrayLike = 10.0,
         row_pad_ignores_labels: ArrayLike = False,
         max_figwidth: float = np.inf,
-        min_runs: int = 2,
-        max_runs: int = 5,
+        nruns: int = 2,
         log: bool = False,
     ) -> None:
-        """
-        Optimize whitespace in the figure.
-
-        Re-arange axes in `fig` such that their margins don't overlap.
-        Also change margins at the edges of the figure such that everything fits.
-        Trim or expand the figure height accordingly.
-
-        **Advantages** over :obj:`matplotlib.pyplot.tight_layout` or
-        `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>`_:
-
-        - Keeps widths constant (either of the axes or of the figure).
-        - Handle colorbars as one may expect (if they were added using
-        :func:`.add_colorbar`).
-        - Updates figure height to optimize white-space for fixed aspect ratios.
-
-        **Disadvantages**:
-
-        - Can only handle `nrows` times `ncols` grids. If you have anything fancy
-        (an axes that spans multiple columns), you cannot use this
-        straightforwardly.
-
-        .. attention::
-
-            By default, `make_me_nice` changes the width of the figure. If you don't want
-            that, set `fix_figwidth` to True.
-
-        Parameters
-        ----------
-        fig : :class:`matplotlib.figure.Figure`, optional
-            If None, use last active figure.
-
-        fix_figwidth : bool, default False
-            Configure if the figure width is kept constant or not.
-
-            True:
-                Keep the figure width constant and scale all axes-widths accordingly.
-            False:
-                Keep axes widths constant and scale figure width accordingly.
-                Also note the `max_figwidth` parameter.
-
-        margin_pad_pts : array_like, default 3.0
-            float:
-                Add the same margin to top, right, bottom, left
-            (float, float):
-                Add the same margin to (top, bottom) and (right, left)
-            (float, float, float):
-                Add the same margins to top, (right, left), bottom
-            (float, float, float, float):
-                Add different margins to top, right, bottom, left.
-
-        margin_pad_ignores_labels : array_like, default ``False``
-            Boolean controlling if ``margin_pad_pts`` should add padding taking
-            into account axes labels or not.
-
-            Passing more than one value works analogously to `margin_pad_pts`.
-
-        col_pad_pts, row_pad_pts : array_like, default ``10.0``
-            Extra padding between the columns (rows) in pts.
-
-            float:
-                Same padding in-between all columns (rows).
-            (float, ...):
-                Different values in-between all columns. Must have a length
-                of ``ncols-1`` (``nrows-1``).
-
-        col_pad_ignores_labels, row_pad_ignores_labels : array_like, default ``False``
-            Boolean controlling if the padding in-between columns (rows) of axes
-            should ignore axes labels or not.
-
-            Passing more than one value works analogously to `col/row_pad_pts`.
-
-        max_figwidth : float, default ``numpy.inf``
-            Maximum figure width in inches. If the figure width after rescaling exceeds
-            this value, throws a ValueError.
-
-        min_runs : int, default 2
-            Minimum number of times the algorithm runs.
-
-            If the layout of the figure changes dramatically during a run, `matplotlib`
-            may adjust the amount of ticklabels displayed. This changes the overall size
-            of axes.
-
-            To account for this change, the algorithm may have to run multiple times.
-
-            .. note::
-
-                If `make_me_nice` fails to calculate the correct margins for your figure,
-                increasing this number may help.
-
-
-        max_runs : int, default 5
-            Maximum number of times the algorithm runs.
-
-            Only relevant if `fix_figwidth` is True.
-
-            .. note::
-
-                If the figure width after calling `make_me_nice` has changed (even
-                though `fix_figwidth` is True), increasing this number will help.
-
-        log : bool, default False
-            Print logs in the standard output.
-
-        See also
-        --------
-        add_margins_pts
-        get_margins_pts
-        add_column_pad_pts
-        get_column_pad_pts
-        add_row_pad_pts
-        get_row_pad_pts
-
-        Notes
-        -----
-        - Cannot handle a fancy :class:`matplotlib.gridspec.GridSpec`, e.g., where
-        one subplot spans multiple other subplots.
-        If you need one of those, you're on your own.
-
-        - If you have subplots with different aspect ratios and `fig_width` is not
-        ``None``, the positioning of the subplots may be incorrect (e.g.,
-        off-centered in the column). Use :func:`.align_axes_vertically` or
-        :func:`.align_axes_horizontally` to fix that.
-
-        - If you use a different backend in `plt.savefig` than the default,
-        you need to specify that before creating the figure. E.g., with
-        ``matplotlib.use("some-backend")``.
-
-        Examples
-        --------
-        Remove margins from a single axes while keeping the axes size constant.
-
-        .. plot:: _examples/layout/make_me_nice_default.py
-            :include-source:
-
-        Remove margins from a single axes while keeping the figure width constant.
-
-        .. plot:: _examples/layout/make_me_nice_fix_figwidth.py
-            :include-source:
-        """
         fig = fig or plt.gcf()
         fig.canvas.draw()
         axs = (
@@ -1533,7 +1863,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
         )
         nrows, ncols = axs.shape
         renderer = _get_renderer(fig)
-        original_figwidth = fig.get_figwidth()
         run = 0
 
         desired_margin_pads = _process_marginslike_arg(margin_pad_pts) / PTS_PER_INCH
@@ -1546,9 +1875,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 self._process_rowcol_args(row_pad_pts, nrows - 1) / PTS_PER_INCH
             )
 
-        while run < min_runs or (
-            fix_figwidth and original_figwidth != round(current_figsize.width, 2)
-        ):
+        while run < nruns:
             bboxes = self._get_bboxes_inch_grid(axs)
             tbboxes = self._get_tbboxes_inch_grid(axs, renderer)
             current_figsize = Area(*fig.get_size_inches())
@@ -1585,16 +1912,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                     )
                     bboxes = self._get_bboxes_inch_grid(axs)
 
-            if fix_figwidth:
-                scale = original_figwidth / fig.get_figwidth()
-                for (i, j), bbox in np.ndenumerate(bboxes):
-                    self.set_axes_size_inches(
-                        (bbox.width * scale, bbox.height * scale), ax=axs[i, j]  # type: ignore
-                    )
-
             run += 1
-            if run >= max_runs:
-                break
 
         necessary_figwidth = fig.get_figwidth()
         if round(necessary_figwidth, 5) > max_figwidth:
@@ -1603,48 +1921,19 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 f"({necessary_figwidth=:.5f} > {max_figwidth=:.5f})"
             )
 
-        if fix_figwidth and round(fig.get_figwidth(), 2) != round(original_figwidth, 2):
-            print("WARNING: The figure width has changed!")
-            print(f"\tOld figure width: {original_figwidth:.2f}")
-            print(f"\tNew figure width: {fig.get_figwidth():.2f}")
-            print(f"\tincreasing max_runs (currently {max_runs}) may help.")
-
         if log:
             print(f"Number of runs: {run}")
 
-    def get_axes_size_inches(self, ax: Axes | None = None) -> Area:
-        """
-        Get the size of `ax` in inches.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.pyplot.Axes`, optional
-            If ``None``, change last active axes.
-
-        Returns
-        -------
-        area : :class:`.Area`
-            Area wrapped in a NamedTuple (width, height) in inches.
-
-        Examples
-        --------
-
-        ::
-
-            >>> ax = plt.subplot()
-            >>> size = mplu.get_axes_size_inches(ax)
-            >>> size.width
-            4.96
-            >>> size.height
-            3.69
-        """
+    @_inherit_doc(get_axes_size_inches)
+    def _get_axes_size_inches(self, ax: Axes | None = None) -> Area:
         ax = ax or plt.gca()
         fig = _get_topmost_figure(ax)
         figsize = Area(*fig.get_size_inches())
         ax_bbox = ax.get_position()
         return Area(ax_bbox.width * figsize.width, ax_bbox.height * figsize.height)
 
-    def set_axes_size_inches(
+    @_inherit_doc(set_axes_size_inches)
+    def _set_axes_size_inches(
         self,
         size_inch: ArrayLike,
         aspect: Literal["auto"] | float = "auto",
@@ -1666,71 +1955,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
             "lower center",
         ] = "center",
     ) -> None:
-        """
-        Set physical size of `ax`.
-
-        Parameters
-        ----------
-        size_inch : float or (float, float)
-            New width and height of the graph-area of `ax` (that is, excluding
-            the axis labels, titles, etc).
-
-            float:
-                Change width and height to the same value, unless `aspect` is not "auto".
-                Then, change height to `size_inch` × `aspect`.
-
-            (float, float)
-                (width, height).
-
-        aspect : "auto" or float, default "auto"
-            Control the aspect ratio.
-
-            "auto":
-                Determine aspect ratio using `size_inch`.
-
-            float:
-                Set aspect ratio of `ax` to height / width.
-
-                If `size_inch` is a tuple and ``size_inch[1] / size_inch[0] != aspect``,
-                raises a ValueError.
-
-        ax : :class:`matplotlib.axes.Axes`, optional
-            If None, change last active axes.
-
-        anchor : {"left", "right", "upper", "lower", "upper left", "upper right", \
-    "upper center", "center left", "center right", "center center", "lower left", \
-    "lower right", "lower center"}, default "center"
-            Anchor point of `ax`.
-
-            E.g., "upper left" means the upper left corner of `ax` stays fixed.
-
-        Examples
-        --------
-        Create an axes and check its size::
-
-            >>> ax = plt.subplot()
-            >>> mplu.get_axes_size_inches()
-            Area(width=4.96, height=3.7)
-        
-        Set size to (width, height)::
-
-            >>> mplu.set_axes_size_inches((4, 3))
-            >>> mplu.get_axes_size_inches()
-            Area(width=4.0, height=3.0)
-
-        Set size to (width, width)::
-
-            >>> mplu.set_axes_size_inches(4)
-            >>> mplu.get_axes_size_inches()
-            Area(width=4.0, height=4.0)
-
-        Set size to (width, width × aspect)::
-
-            >>> mplu.set_axes_size_inches(4, 4 / 3)
-            >>> mplu.get_axes_size_inches()
-            Area(width=4.0, height=3.0)
-        """
-
         @dataclass
         class Position:
             x0: float
@@ -1789,46 +2013,19 @@ class FixedAxesLayoutEngine(LayoutEngine):
         if not self._in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((new_pos.x0, new_pos.y0, new_pos.width, new_pos.height))
-        self.update_colorbars()
+        self._update_colorbars()
         if not self._in_progress:
             self._colorbars = []
 
-    def get_axes_position_inch(self, ax: None | Axes = None) -> Bbox:
-        """
-        Get the bounding box of `ax` in inches, excluding labels, titles, etc.
-
-        Wrapper function for :meth:`matplotlib.axes.Axes.get_position()` which
-        converts it to inches.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.axes.Axes`, optional
-            If ``None``, use last active axes.
-
-        Returns
-        -------
-        bbox : :class:`matplotlib.transforms.Bbox`
-            The bounding box of just the graph-area of `ax` in inches.
-
-            Useful members:
-
-            ``bbox.x0``, ``bbox.x1``
-                Location of the left and right edge in inches. Negative values are
-                left of the figure left edge.
-
-            ``bbox.y0``, ``bbox.y1``
-                Lower and upper edge in inches. Negative values are below the
-                figure bottom edge.
-
-            ``bbox.width``, ``bbox.height``
-                Width and height of the graph-area of `ax`.
-        """
+    @_inherit_doc(get_axes_position_inch)
+    def _get_axes_position_inch(self, ax: None | Axes = None) -> Bbox:
         ax = ax or plt.gca()
         fw, fh = _get_topmost_figure(ax).get_size_inches()
         bbox = ax.get_position()
         return Bbox([[bbox.x0 * fw, bbox.y0 * fh], [bbox.x1 * fw, bbox.y1 * fh]])
 
-    def set_axes_position_inch(
+    @_inherit_doc(set_axes_position_inch)
+    def _set_axes_position_inch(
         self,
         x0_inch: float,
         y0_inch: float,
@@ -1836,71 +2033,14 @@ class FixedAxesLayoutEngine(LayoutEngine):
         height_inch: float,
         ax: None | Axes = None,
     ) -> None:
-        """
-        Update the axes position using aboslute (instead of relative) units.
-
-        Parameters
-        ----------
-        x0_inch, y0_inch : float
-            The new origin.
-
-        width_inch, height_inch : float
-            The new dimensions
-
-        ax : :class:`matplotlib.axes.Axes`, optional
-            If ``None``, use last active axes.
-        """
         ax = ax or plt.gca()
         fw, fh = _get_topmost_figure(ax).get_size_inches()
         ax.set_position((x0_inch / fw, y0_inch / fh, width_inch / fw, height_inch / fh))
 
-    def get_axes_tightbbox_inch(
+    @_inherit_doc(get_axes_tightbbox_inch)
+    def _get_axes_tightbbox_inch(
         self, ax: None | Axes = None, renderer: None | RendererBase = None
     ) -> Bbox:
-        """
-        Get bounding box of `ax` including labels in inches.
-
-        Wrapper function for :meth:`matplotlib.axes.Axes.get_tightbbox()` which
-        converts it to inches.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.axes.Axes`, optional
-            If ``None``, use last active axes.
-
-        renderer : :class:`matplotlib.backend_bases.RendererBase`, optional
-            The renderer used to draw the figure.
-
-            Generally not necessary to pass it. If, however, you use
-            a backend that takes a long time to render (e.g., a LuaLaTeX pgf
-            backend), it may increase performance by passing the renderer.
-            Use :func:`.get_renderer` to get your current renderer.
-
-        Returns
-        -------
-        bbox : :class:`matplotlib.transforms.Bbox`
-            The bounding box of `ax` including x/ylabels, titles, etc, in inches.
-
-            Useful members:
-
-            ``bbox.x0``, ``bbox.x1``
-                Location of the left and right edge in inches. Negative values are
-                left of the figure left edge.
-
-            ``bbox.y0``, ``bbox.y1``
-                Lower and upper edge in inches. Negative values are below the
-                figure bottom edge.
-
-            ``bbox.width``, ``bbox.height``
-                Width and height of the `ax`, including labels, titles, etc.
-
-        Notes
-        -----
-        This ignores text elements added to `ax`. In particular, this means if
-        you used :func:`.add_abc` to add labels outside of the graph-area of `ax`,
-        the dimensions returned by ``get_axes_tightbbox_inch`` will not include
-        those.
-        """
         ax = ax or plt.gca()
         fig = _get_topmost_figure(ax)
         if fig is None:
@@ -1947,22 +2087,10 @@ class FixedAxesLayoutEngine(LayoutEngine):
         rtn = Bbox.from_extents(*relevant_xy)
         return rtn
 
-    def get_axes_margins_inches(self, ax: Axes | None = None) -> Quadrants:
-        """
-        Get the margins (size of labels, etc) of `ax` in inches.
-
-        Parameters
-        ----------
-        ax : :class:`matplotlib.pyplot.Axes`, optional
-            If ``None``, change last active axes.
-
-        Returns
-        -------
-        Quadrants : :class:`.Quadrants`
-            (top, right, bottom, left) margins.
-        """
-        b = self.get_axes_position_inch(ax)
-        t = self.get_axes_tightbbox_inch(ax)
+    @_inherit_doc(get_axes_margins_inches)
+    def _get_axes_margins_inches(self, ax: Axes | None = None) -> Quadrants:
+        b = self._get_axes_position_inch(ax)
+        t = self._get_axes_tightbbox_inch(ax)
         return Quadrants(t.y1 - b.y1, t.x1 - b.x1, b.y0 - t.y0, b.x0 - t.x0)
 
     def _get_bboxes_inch_grid(self, axs: NDArray) -> NDArray:
@@ -1983,7 +2111,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         nrows, ncols = axs.shape
         bboxes_inch = np.empty((nrows, ncols), dtype=Bbox)
         for i, j in itertools.product(range(nrows), range(ncols)):
-            bboxes_inch[i, j] = self.get_axes_position_inch(axs[i, j])
+            bboxes_inch[i, j] = self._get_axes_position_inch(axs[i, j])
         return bboxes_inch
 
     def _get_tbboxes_inch_grid(
@@ -2009,16 +2137,14 @@ class FixedAxesLayoutEngine(LayoutEngine):
         nrows, ncols = axs.shape
         tbboxes_inch = np.empty((nrows, ncols), dtype=Bbox)
         for i, j in itertools.product(range(nrows), range(ncols)):
-            tbboxes_inch[i, j] = self.get_axes_tightbbox_inch(
+            tbboxes_inch[i, j] = self._get_axes_tightbbox_inch(
                 axs[i, j], renderer=renderer
             )
         return tbboxes_inch
 
-    def update_colorbars(self, fig: Figure | None = None) -> None:
+    def _update_colorbars(self, fig: Figure | None = None) -> None:
         """
         Re-align colorbars to their parent axes.
-
-        Only re-aligns colorbars added by :func:`.add_colorbar`.
 
         Parameters
         ----------
