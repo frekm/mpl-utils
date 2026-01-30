@@ -950,9 +950,7 @@ def set_axes_position_inch(
     return engine._set_axes_position_inch(x0_inch, y0_inch, width_inch, height_inch, ax)
 
 
-def get_axes_tightbbox_inch(
-    ax: None | Axes = None, renderer: None | RendererBase = None
-) -> Bbox:
+def get_axes_tightbbox_inch(ax: None | Axes = None) -> Bbox:
     """
     Get bounding box of `ax` including labels in inches.
 
@@ -963,14 +961,6 @@ def get_axes_tightbbox_inch(
     ----------
     ax : :class:`matplotlib.axes.Axes`, optional
         If ``None``, use last active axes.
-
-    renderer : :class:`matplotlib.backend_bases.RendererBase`, optional
-        The renderer used to draw the figure.
-
-        Generally not necessary to pass it. If, however, you use
-        a backend that takes a long time to render (e.g., a LuaLaTeX pgf
-        backend), it may increase performance by passing the renderer.
-        Use :func:`.get_renderer` to get your current renderer.
 
     Returns
     -------
@@ -1003,7 +993,7 @@ def get_axes_tightbbox_inch(
     """
     ax = ax or plt.gca()
     engine = _validate_and_get_layout_engine(_get_topmost_figure(ax))
-    return engine._get_axes_tightbbox_inch(ax, renderer)
+    return engine._get_axes_tightbbox_inch(ax)
 
 
 def get_axes_margins_inches(ax: Axes | None = None) -> Quadrants:
@@ -1381,6 +1371,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self.log = log
 
         self._execute_in_progress = False
+        self._renderer: RendererBase | None = None
+        self._fig: Figure | None = None
         self._axes_grid = None  # will update every time execute is called
         self._colorbars: list[FixedAxesLayoutEngine._Colorbar] = []
 
@@ -1393,6 +1385,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
         self._axes_grid = self._get_sorted_axes_grid(fig)
         self._colorbars = self._get_list_of_colorbars(fig)
+        self._renderer = fig._get_renderer()  # type: ignore
 
         try:
             self._apply(
@@ -1405,12 +1398,12 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 row_pad_ignores_labels=self.row_pad_ignores_labels,
                 max_figwidth=self.max_figwidth,
                 nruns=self.nruns,
-                log=self.log,
             )
         finally:
             self._execute_in_progress = False
             self._axes_grid = None
             self._colorbars = []
+            self._renderer = None
 
     @dataclass
     class _Colorbar:
@@ -1564,19 +1557,16 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
     @_inherit_doc(get_row_pad_pts)
     def _get_row_pad_pts(
-        self,
-        irow: int,
-        ignore_labels: bool = False,
-        fig: None | Figure = None,
+        self, irow: int, ignore_labels: bool = False, fig: None | Figure = None
     ) -> float:
-        fig = fig or plt.gcf()
+        fig = self._fig or plt.gcf()
         if not _is_valid_figure_for_layout(fig):
             return np.nan
         axs = (
             self._get_sorted_axes_grid() if self._axes_grid is None else self._axes_grid
         )
         bboxes = self._get_bboxes_inch_grid(axs)
-        tbboxes = self._get_tbboxes_inch_grid(axs, _get_renderer(fig))
+        tbboxes = self._get_tbboxes_inch_grid(axs)
         if 0 < irow < axs.shape[0]:
             pads_inch = self._get_rowpads_inch(
                 axs.shape[0], ignore_labels, bboxes, tbboxes
@@ -1649,9 +1639,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
             if self._axes_grid is None
             else self._axes_grid
         )
-        renderer = _get_renderer(fig)
         bboxes_inch = self._get_bboxes_inch_grid(axs)
-        tbboxes_inch = self._get_tbboxes_inch_grid(axs, renderer)
+        tbboxes_inch = self._get_tbboxes_inch_grid(axs)
         margins_inch = self._get_margins_inch(
             ignore_labels, bboxes_inch, tbboxes_inch, figsize
         )
@@ -1876,7 +1865,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
             else self._axes_grid
         )
         bboxes = self._get_bboxes_inch_grid(axs)
-        tbboxes = self._get_tbboxes_inch_grid(axs, _get_renderer(fig))
+        tbboxes = self._get_tbboxes_inch_grid(axs)
         if 0 < icol < axs.shape[1]:
             pads_inch = self._get_colpads_inch(
                 axs.shape[1], ignore_labels, bboxes, tbboxes
@@ -1907,7 +1896,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
     def _apply(
         self,
-        fig: None | Figure = None,
+        fig: Figure,
         margin_pad_pts: ArrayLike = 3.0,
         margin_pad_ignores_labels: ArrayLike = False,
         col_pad_pts: ArrayLike = 10.0,
@@ -1916,9 +1905,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         row_pad_ignores_labels: ArrayLike = False,
         max_figwidth: float = np.inf,
         nruns: int = 2,
-        log: bool = False,
     ) -> None:
-        fig = fig or plt.gcf()
         if not _is_valid_figure_for_layout(fig):
             return
         axs = (
@@ -1927,7 +1914,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
             else self._axes_grid
         )
         nrows, ncols = axs.shape
-        renderer = _get_renderer(fig)
         run = 0
 
         desired_margin_pads = _process_marginslike_arg(margin_pad_pts) / PTS_PER_INCH
@@ -1942,7 +1928,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
         while run < nruns:
             bboxes = self._get_bboxes_inch_grid(axs)
-            tbboxes = self._get_tbboxes_inch_grid(axs, renderer)
+            tbboxes = self._get_tbboxes_inch_grid(axs)
             current_figsize = Area(*fig.get_size_inches())
 
             current_colpads = self._get_colpads_inch(
@@ -1985,9 +1971,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 "Parameters result in a figure that is too wide "
                 f"({necessary_figwidth=:.5f} > {max_figwidth=:.5f})"
             )
-
-        if log:
-            print(f"Number of runs: {run}")
 
     @_inherit_doc(get_axes_size_inches)
     def _get_axes_size_inches(self, ax: Axes | None = None) -> Area:
@@ -2103,11 +2086,10 @@ class FixedAxesLayoutEngine(LayoutEngine):
         ax.set_position((x0_inch / fw, y0_inch / fh, width_inch / fw, height_inch / fh))
 
     @_inherit_doc(get_axes_tightbbox_inch)
-    def _get_axes_tightbbox_inch(
-        self, ax: None | Axes = None, renderer: None | RendererBase = None
-    ) -> Bbox:
+    def _get_axes_tightbbox_inch(self, ax: None | Axes = None) -> Bbox:
         ax = ax or plt.gca()
         fig = _get_topmost_figure(ax)
+        renderer = self._renderer or _get_renderer(fig)
         if fig is None:
             raise ValueError("ax must be part of a figure")
         dpi = fig.get_dpi()
@@ -2183,9 +2165,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
             bboxes_inch[i, j] = self._get_axes_position_inch(axs[i, j])
         return bboxes_inch
 
-    def _get_tbboxes_inch_grid(
-        self, axs: NDArray, renderer: None | RendererBase
-    ) -> NDArray:
+    def _get_tbboxes_inch_grid(self, axs: NDArray) -> NDArray:
         """
         Get the :class:`Bbox <matplotlib.transforms.Bbox>` of `axs` aranged in a grid
         (`nrows`, `ncols`) including labels, etc.
@@ -2195,9 +2175,6 @@ class FixedAxesLayoutEngine(LayoutEngine):
         axs : ndarray, shape(`nrows`, `ncols`)
             2D grid of :class:`matplotlib.axes.Axes`.
 
-        renderer : :class:`matplotlib.backend_bases.RendererBase`, optional
-            The renderer of the figure.
-
         Returns
         -------
         tbboxes : ndarray
@@ -2206,9 +2183,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         nrows, ncols = axs.shape
         tbboxes_inch = np.empty((nrows, ncols), dtype=Bbox)
         for i, j in itertools.product(range(nrows), range(ncols)):
-            tbboxes_inch[i, j] = self._get_axes_tightbbox_inch(
-                axs[i, j], renderer=renderer
-            )
+            tbboxes_inch[i, j] = self._get_axes_tightbbox_inch(axs[i, j])
         return tbboxes_inch
 
     def _update_colorbars(self, fig: Figure | None = None) -> None:
