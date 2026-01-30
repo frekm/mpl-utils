@@ -27,6 +27,200 @@ PTS_PER_INCH: Final = 72.0
 PTS_PER_MM: Final = PTS_PER_INCH / MM_PER_INCH
 
 
+class Quadrants(NamedTuple):
+    """
+    Tuple representing the top/right/bottom/left quadrants of a figure.
+
+    Parameters
+    ----------
+    top, right, bottom, left :
+        The value(s) representing the top, right, bottom, left quadrants.
+
+    Attributes
+    ----------
+    t, r, b, l :
+        Alias for top/right/bottom/left.
+    """
+
+    top: Any
+    right: Any
+    bottom: Any
+    left: Any
+
+    @property
+    def t(self) -> Any:
+        """
+        Alias for top.
+        """
+        return self.top
+
+    @property
+    def r(self) -> Any:
+        """
+        Alias for right.
+        """
+        return self.right
+
+    @property
+    def b(self) -> Any:
+        """
+        Alias for bottom.
+        """
+        return self.bottom
+
+    @property
+    def l(self) -> Any:
+        """
+        Alias for left.
+        """
+        return self.left
+
+    def __neg__(self) -> "Quadrants":
+        return Quadrants(*[-el for el in self])
+
+    def __add__(self, val) -> "Quadrants":
+        if isinstance(val, Quadrants):
+            return Quadrants(*[self[i] + val[i] for i in range(4)])
+        return Quadrants(*[el + val for el in self])
+
+    def __radd__(self, val) -> "Quadrants":
+        return self + val
+
+    def __sub__(self, val) -> "Quadrants":
+        if isinstance(val, Quadrants):
+            return Quadrants(*[self[i] - val[i] for i in range(4)])
+        return Quadrants(*[el - val for el in self])
+
+    def __rsub__(self, val) -> "Quadrants":
+        return self - val
+
+    def __mul__(self, val) -> "Quadrants":
+        if isinstance(val, Quadrants):
+            return Quadrants(*[self[i] * val[i] for i in range(4)])
+        return Quadrants(*[el * val for el in self])
+
+    def __rmul__(self, val) -> "Quadrants":
+        return self * val
+
+    def __truediv__(self, val) -> "Quadrants":
+        if isinstance(val, Quadrants):
+            return Quadrants(*[self[i] / val[i] for i in range(4)])
+        return Quadrants(*[el / val for el in self])
+
+    def __rtruediv__(self, val) -> "Quadrants":
+        return self / val
+
+    def __floordiv__(self, val) -> "Quadrants":
+        if isinstance(val, Quadrants):
+            return Quadrants(*[self[i] // val[i] for i in range(4)])
+        return Quadrants(*[el // val for el in self])
+
+    def __rfloordiv__(self, val) -> "Quadrants":
+        return self // val
+
+    def astype(self, t: Type) -> "Quadrants":
+        """
+        Convert elements to type `t`
+
+        Examples
+        --------
+        ::
+
+            >>> quadrants = mplu.Quadrants(1.0, 1.0, 1.0, 1.0)
+            >>> quadrants
+            Quadrants(top=1.0, right=1.0, bottom=1.0, left=1.0)
+            >>> quadrants.astype(int)
+            Quadrants(top=1, right=1, bottom=1, left=1)
+        """
+        return Quadrants(*[t(el) for el in self])
+
+
+class Area(NamedTuple):
+    """
+    Tuple representing the size of an area.
+
+    Parameters
+    ----------
+    width, height :
+        Width(s) and height(s) of the area.
+
+    Attributes
+    ----------
+    w, h :
+        Aliases for width/height.
+    """
+
+    width: Any
+    height: Any
+
+    @property
+    def w(self) -> Any:
+        return self.width
+
+    @property
+    def h(self) -> Any:
+        return self.height
+
+    def __mul__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] * val[i] for i in range(2)])
+        return Area(*[el * val for el in self])
+
+    def __rmul__(self, val) -> "Area":
+        return self * val
+
+    def __add__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] + val[i] for i in range(2)])
+        return Area(*[el + val for el in self])
+
+    def __radd__(self, val) -> "Area":
+        return self + val
+
+    def __sub__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] - val[i] for i in range(2)])
+        return Area(*[el - val for el in self])
+
+    def __rsub__(self, val) -> "Area":
+        return self - val
+
+    def __truediv__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] / val[i] for i in range(2)])
+        return Area(*[el / val for el in self])
+
+    def __rtruediv__(self, val) -> "Area":
+        return self / val
+
+    def __floordiv__(self, val) -> "Area":
+        if isinstance(val, Area):
+            return Area(*[self[i] // val[i] for i in range(2)])
+        return Area(*[el // val for el in self])
+
+    def __rfloordiv__(self, val) -> "Area":
+        return self // val
+
+    def __neg__(self) -> "Area":
+        return Area(*[-el for el in self])
+
+    def astype(self, t: Type) -> "Area":
+        """
+        Convert elements to type `t`
+
+        Examples
+        --------
+        ::
+
+            >>> size = mplu.Area(3.0, 3.0)
+            >>> size
+            Area(width=3.0, height=3.0)
+            >>> size.astype(int)
+            Area(width=3, height=3)
+        """
+        return Area(*[t(el) for el in self])
+
+
 def _inherit_doc(parent_method):
     def decorator(func):
         # We use wraps to keep the original func's identity,
@@ -41,7 +235,7 @@ def _inherit_doc(parent_method):
     return decorator
 
 
-def _validate_and_get_layout_engine(fig: Figure | None) -> FixedAxesLayoutEngine:
+def _validate_and_get_layout_engine(fig: Figure | None) -> "FixedAxesLayoutEngine":
     fig = fig or plt.gcf()
     engine = fig.get_layout_engine()
     if not isinstance(engine, FixedAxesLayoutEngine):
@@ -796,200 +990,6 @@ def _get_colorbar_location(cax: Axes, parent_axes: list[Axes]):
         return "top" if dy > 0 else "bottom"
 
 
-class Quadrants(NamedTuple):
-    """
-    Tuple representing the top/right/bottom/left quadrants of a figure.
-
-    Parameters
-    ----------
-    top, right, bottom, left :
-        The value(s) representing the top, right, bottom, left quadrants.
-
-    Attributes
-    ----------
-    t, r, b, l :
-        Alias for top/right/bottom/left.
-    """
-
-    top: Any
-    right: Any
-    bottom: Any
-    left: Any
-
-    @property
-    def t(self) -> Any:
-        """
-        Alias for top.
-        """
-        return self.top
-
-    @property
-    def r(self) -> Any:
-        """
-        Alias for right.
-        """
-        return self.right
-
-    @property
-    def b(self) -> Any:
-        """
-        Alias for bottom.
-        """
-        return self.bottom
-
-    @property
-    def l(self) -> Any:
-        """
-        Alias for left.
-        """
-        return self.left
-
-    def __neg__(self) -> "Quadrants":
-        return Quadrants(*[-el for el in self])
-
-    def __add__(self, val) -> "Quadrants":
-        if isinstance(val, Quadrants):
-            return Quadrants(*[self[i] + val[i] for i in range(4)])
-        return Quadrants(*[el + val for el in self])
-
-    def __radd__(self, val) -> "Quadrants":
-        return self + val
-
-    def __sub__(self, val) -> "Quadrants":
-        if isinstance(val, Quadrants):
-            return Quadrants(*[self[i] - val[i] for i in range(4)])
-        return Quadrants(*[el - val for el in self])
-
-    def __rsub__(self, val) -> "Quadrants":
-        return self - val
-
-    def __mul__(self, val) -> "Quadrants":
-        if isinstance(val, Quadrants):
-            return Quadrants(*[self[i] * val[i] for i in range(4)])
-        return Quadrants(*[el * val for el in self])
-
-    def __rmul__(self, val) -> "Quadrants":
-        return self * val
-
-    def __truediv__(self, val) -> "Quadrants":
-        if isinstance(val, Quadrants):
-            return Quadrants(*[self[i] / val[i] for i in range(4)])
-        return Quadrants(*[el / val for el in self])
-
-    def __rtruediv__(self, val) -> "Quadrants":
-        return self / val
-
-    def __floordiv__(self, val) -> "Quadrants":
-        if isinstance(val, Quadrants):
-            return Quadrants(*[self[i] // val[i] for i in range(4)])
-        return Quadrants(*[el // val for el in self])
-
-    def __rfloordiv__(self, val) -> "Quadrants":
-        return self // val
-
-    def astype(self, t: Type) -> "Quadrants":
-        """
-        Convert elements to type `t`
-
-        Examples
-        --------
-        ::
-
-            >>> quadrants = mplu.Quadrants(1.0, 1.0, 1.0, 1.0)
-            >>> quadrants
-            Quadrants(top=1.0, right=1.0, bottom=1.0, left=1.0)
-            >>> quadrants.astype(int)
-            Quadrants(top=1, right=1, bottom=1, left=1)
-        """
-        return Quadrants(*[t(el) for el in self])
-
-
-class Area(NamedTuple):
-    """
-    Tuple representing the size of an area.
-
-    Parameters
-    ----------
-    width, height :
-        Width(s) and height(s) of the area.
-
-    Attributes
-    ----------
-    w, h :
-        Aliases for width/height.
-    """
-
-    width: Any
-    height: Any
-
-    @property
-    def w(self) -> Any:
-        return self.width
-
-    @property
-    def h(self) -> Any:
-        return self.height
-
-    def __mul__(self, val) -> "Area":
-        if isinstance(val, Area):
-            return Area(*[self[i] * val[i] for i in range(2)])
-        return Area(*[el * val for el in self])
-
-    def __rmul__(self, val) -> "Area":
-        return self * val
-
-    def __add__(self, val) -> "Area":
-        if isinstance(val, Area):
-            return Area(*[self[i] + val[i] for i in range(2)])
-        return Area(*[el + val for el in self])
-
-    def __radd__(self, val) -> "Area":
-        return self + val
-
-    def __sub__(self, val) -> "Area":
-        if isinstance(val, Area):
-            return Area(*[self[i] - val[i] for i in range(2)])
-        return Area(*[el - val for el in self])
-
-    def __rsub__(self, val) -> "Area":
-        return self - val
-
-    def __truediv__(self, val) -> "Area":
-        if isinstance(val, Area):
-            return Area(*[self[i] / val[i] for i in range(2)])
-        return Area(*[el / val for el in self])
-
-    def __rtruediv__(self, val) -> "Area":
-        return self / val
-
-    def __floordiv__(self, val) -> "Area":
-        if isinstance(val, Area):
-            return Area(*[self[i] // val[i] for i in range(2)])
-        return Area(*[el // val for el in self])
-
-    def __rfloordiv__(self, val) -> "Area":
-        return self // val
-
-    def __neg__(self) -> "Area":
-        return Area(*[-el for el in self])
-
-    def astype(self, t: Type) -> "Area":
-        """
-        Convert elements to type `t`
-
-        Examples
-        --------
-        ::
-
-            >>> size = mplu.Area(3.0, 3.0)
-            >>> size
-            Area(width=3.0, height=3.0)
-            >>> size.astype(int)
-            Area(width=3, height=3)
-        """
-        return Area(*[t(el) for el in self])
-
-
 def _get_topmost_figure(ax: Axes) -> Figure:
     """
     Get the parent figure of `ax`.
@@ -1362,7 +1362,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
     def _get_list_of_colorbars(
         self, fig: Figure | None = None
-    ) -> list[FixedAxesLayoutEngine._Colorbar]:
+    ) -> list["FixedAxesLayoutEngine._Colorbar"]:
         output: list[FixedAxesLayoutEngine._Colorbar] = []
         fig = plt.gcf() if fig is None else fig
         axs = fig.get_axes()
