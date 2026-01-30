@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure, SubFigure
 from matplotlib.backend_bases import RendererBase
-from matplotlib.gridspec import SubplotSpec
+from matplotlib.gridspec import SubplotSpec, GridSpecFromSubplotSpec
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import Colorbar
 from matplotlib.transforms import Bbox
 from matplotlib.layout_engine import LayoutEngine
 import itertools
 import numpy as np
+import warnings
 from numpy.typing import ArrayLike, NDArray
 from dataclasses import dataclass
 from functools import wraps
@@ -219,6 +220,65 @@ class Area(NamedTuple):
             Area(width=3, height=3)
         """
         return Area(*[t(el) for el in self])
+
+
+def _has_nested_gridspec(fig: Figure) -> bool:
+    for ax in fig.get_axes():
+        ss = ax.get_subplotspec()
+        if ss is None:
+            continue
+        if isinstance(ss.get_gridspec(), GridSpecFromSubplotSpec):
+            return True
+    return False
+
+
+def _has_any_gridspec(fig: Figure) -> bool:
+    for ax in fig.get_axes():
+        if ax.get_subplotspec() is not None:
+            return True
+    return False
+
+
+def _has_fancy_gridspec(fig: Figure) -> bool:
+    for ax in fig.get_axes():
+        ss = ax.get_subplotspec()
+        if ss is None:
+            continue
+        if ss.num1 != ss.num2:
+            return True
+    return False
+
+
+def _warn_unsupported_layout_once(fig):
+    if getattr(fig, "_has_warned", False):
+        return False  # already warned
+
+    fig._has_warned = True
+
+    warnings.warn(
+        "FixedAxesLayoutEngine requires the layout engine to be installed before "
+        "any colorbars or nested GridSpecs are created.\n\n"
+        "FixedAxesLayoutEngine does not support Gridspecs where an Axes spans "
+        "multiple rows or columns\n\n"
+        "This figure contains cannot be handled reliably. "
+        "All layout operations will be skipped.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+
+    return True
+
+
+def _is_valid_figure_for_layout(fig: Figure) -> bool:
+    if (
+        (not _has_nested_gridspec(fig))
+        and (not _has_fancy_gridspec(fig))
+        and _has_any_gridspec(fig)
+    ):
+        return True
+
+    _warn_unsupported_layout_once(fig)
+    return False
 
 
 def _inherit_doc(parent_method):
@@ -1325,6 +1385,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
     def execute(self, fig):
         if self._execute_in_progress:
             return
+        if not _is_valid_figure_for_layout(fig):
+            return
         self._execute_in_progress = True
 
         self._axes_grid = self._get_sorted_axes_grid(fig)
@@ -1423,26 +1485,14 @@ class FixedAxesLayoutEngine(LayoutEngine):
             if not _is_colorbar_axes(ax):
                 axs_unordered.append(ax)
 
-        # get subplotspecs, ensureing that it is not None
         subplotspecs: dict[Axes, SubplotSpec] = {}
         for ax in axs_unordered:
             subplotspec = ax.get_subplotspec()
             if subplotspec is None:
-                msg = "axes not part of a GridSpec, this won't work"
-                raise ValueError(msg)
-            else:
-                subplotspecs[ax] = subplotspec
-        assert subplotspecs, "subplotspecs were empty here"
+                continue
+            subplotspecs[ax] = subplotspec
 
-        # check that there is only one GridSpec in the figure
         gridspec = subplotspecs[axs_unordered[0]].get_gridspec()
-        for subplotspec in subplotspecs.values():
-            if subplotspec.get_gridspec() is not gridspec:
-                raise ValueError("Multiple GridSpecs in figure, this won't work")
-            if subplotspec.num1 != subplotspec.num2:
-                msg = "GridSpec too fancy for me. I can't handle this :c"
-                raise ValueError(msg)
-
         # create a ndarray of axes arranged in a grid corresponding to the gridspec
         axs = np.empty((gridspec.nrows, gridspec.ncols), dtype=Axes)
         for row in range(gridspec.nrows):
@@ -1518,6 +1568,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fig: None | Figure = None,
     ) -> float:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return np.nan
         axs = (
             self._get_sorted_axes_grid() if self._axes_grid is None else self._axes_grid
         )
@@ -1587,6 +1639,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fig: None | Figure = None,
     ) -> Quadrants:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return Quadrants(np.nan, np.nan, np.nan, np.nan)
         figsize = Area(*fig.get_size_inches())
         axs = (
             self._get_sorted_axes_grid(fig)
@@ -1649,6 +1703,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self, margins_pts: ArrayLike, fig: None | Figure = None
     ) -> None:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return
         axs = (
             self._get_sorted_axes_grid(fig)
             if self._axes_grid is None
@@ -1741,6 +1797,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fig: None | Figure = None,
     ) -> None:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return
         axs = (
             self._get_sorted_axes_grid(fig)
             if self._axes_grid is None
@@ -1776,6 +1834,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self, irow: int, pad_pts: float, fig: None | Figure = None
     ) -> None:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return
         axs = (
             self._get_sorted_axes_grid(fig)
             if self._axes_grid is None
@@ -1806,6 +1866,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self, icol: int, ignore_labels: bool = False, fig: None | Figure = None
     ) -> float:
         fig = fig or plt.gcf()
+        if not _is_valid_figure_for_layout(fig):
+            return np.nan
         axs = (
             self._get_sorted_axes_grid(fig)
             if self._axes_grid is None
@@ -1855,7 +1917,8 @@ class FixedAxesLayoutEngine(LayoutEngine):
         log: bool = False,
     ) -> None:
         fig = fig or plt.gcf()
-        fig.canvas.draw()
+        if not _is_valid_figure_for_layout(fig):
+            return
         axs = (
             self._get_sorted_axes_grid(fig)
             if self._axes_grid is None
