@@ -1318,14 +1318,14 @@ class FixedAxesLayoutEngine(LayoutEngine):
         self.nruns = nruns
         self.log = log
 
-        self._in_progress = False
+        self._execute_in_progress = False
         self._axes_grid = None  # will update every time execute is called
         self._colorbars: list[FixedAxesLayoutEngine._Colorbar] = []
 
     def execute(self, fig):
-        if self._in_progress:
+        if self._execute_in_progress:
             return
-        self._in_progress = True
+        self._execute_in_progress = True
 
         self._axes_grid = self._get_sorted_axes_grid(fig)
         self._colorbars = self._get_list_of_colorbars(fig)
@@ -1344,7 +1344,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 log=self.log,
             )
         finally:
-            self._in_progress = False
+            self._execute_in_progress = False
             self._axes_grid = None
             self._colorbars = []
 
@@ -1474,11 +1474,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             valid_anchors = "center", "top", "bottom"
             msg = f"{alignment=}, but it should be one of {valid_anchors}"
             raise ValueError(msg)
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((bbox_ax.x0, y0, bbox_ax.width, bbox_ax.height))
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(align_axes_horizontally)
@@ -1503,11 +1503,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             msg = f"{alignment=}, but it should be one of {valid_anchors}"
             raise ValueError(msg)
 
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height))
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(get_row_pad_pts)
@@ -1629,7 +1629,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         fw_old, fh_old = fig.get_size_inches()
         fw_new = fw_old + margins_inch.left + margins_inch.right
         fh_new = fh_old + margins_inch.top + margins_inch.bottom
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars(fig)
         fig.set_size_inches(fw_new, fh_new, forward=False)
         for (i, j), bbox in np.ndenumerate(bboxes_inch):
@@ -1641,7 +1641,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 axs[i, j],  # type: ignore
             )
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(add_margins_pts)
@@ -1717,7 +1717,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
         """
         fw_old, fh_old = fig.get_size_inches()
         fw_new = fw_old + pad_inch
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars()
         fig.set_size_inches(fw_new, fh_old)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
@@ -1730,7 +1730,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 axs[irow, icol],  # type: ignore
             )
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(add_column_pad_pts)
@@ -1755,7 +1755,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
     ) -> None:
         fw_old, fh_old = fig.get_size_inches()
         fh_new = fh_old + pad_inch
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars()
         fig.set_size_inches(fw_old, fh_new)
         for (irow, icol), bbox in np.ndenumerate(bboxes_inch):
@@ -1768,7 +1768,7 @@ class FixedAxesLayoutEngine(LayoutEngine):
                 axs[irow, icol],  # type: ignore
             )
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(add_row_pad_pts)
@@ -2010,11 +2010,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
         elif anchor_split[1] == "center":
             new_pos.x0 = old_pos.x0 + (old_pos.width - new_pos.width) / 2.0
 
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = self._get_list_of_colorbars()
         ax.set_position((new_pos.x0, new_pos.y0, new_pos.width, new_pos.height))
         self._update_colorbars()
-        if not self._in_progress:
+        if not self._execute_in_progress:
             self._colorbars = []
 
     @_inherit_doc(get_axes_position_inch)
@@ -2054,7 +2054,11 @@ class FixedAxesLayoutEngine(LayoutEngine):
             [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
         )
 
-        cbars = self._colorbars if self._in_progress else self._get_list_of_colorbars()
+        cbars = (
+            self._colorbars
+            if self._execute_in_progress
+            else self._get_list_of_colorbars()
+        )
 
         for cb in cbars:
             if cb.parent_ax is ax:
