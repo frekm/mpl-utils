@@ -1262,23 +1262,18 @@ class FixedAxesLayoutEngine(LayoutEngine):
     """
     Layout engine with absoulte axes sizes in inches.
 
-    Re-arange axes in `fig` such that their margins don't overlap.
-    Also change margins at the edges of the figure such that everything fits.
-    Trim or expand the figure height accordingly.
+    Produces layouts were the aboslute sizes of axes, margins, and padding are
+    fixed and the figure size changes accordingly.
 
-    **Advantages** over :obj:`matplotlib.pyplot.tight_layout` or
-    `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>`_:
-
-    - Keeps widths constant (either of the axes or of the figure).
-    - Handle colorbars as one may expect (if they were added using
-    :func:`.add_colorbar`).
-    - Updates figure height to optimize white-space for fixed aspect ratios.
-
-    **Disadvantages**:
+    **Constrains:**
 
     - Can only handle `nrows` times `ncols` grids. If you have anything fancy
     (an axes that spans multiple columns), you cannot use this
     straightforwardly.
+    - Must be set before any colorbars are added to the figure.
+    - Currently does not detect presence of :meth:`matplotlib.pyplot.suptitle`. Manual
+    margins must be added to work around this.
+
 
     Parameters
     ----------
@@ -1346,10 +1341,17 @@ class FixedAxesLayoutEngine(LayoutEngine):
 
     Examples
     --------
-    Remove margins from a single axes while keeping the axes size constant.
+    Ideally, set the engine at figure creation time or right after, e.g.,
 
-    .. plot:: _examples/layout/make_me_nice_default.py
-        :include-source:
+    .. code-block:: python
+
+        engine = mplu.FixedAxesLayoutEngine()
+        fig, ax = plt.subplots(layout=engine)
+        fig, ax = plt.subplots_mosaic([["a"]], layout=engine)
+        ax = plt.subplot(111)
+        plt.gcf().set_layout_engine(engine)
+
+    Following are some examples showcasing the layout.
     """
 
     _colorbar_gridspec = False
