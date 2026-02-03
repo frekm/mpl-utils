@@ -19,6 +19,8 @@ from ._layout import (
     align_axes_vertically,
 )
 
+from ._trimmed_constrained_layout_engine import TrimmedConstrainedLayoutEngine
+
 from ._misc import (
     savefig,
     for_pcolormesh,
