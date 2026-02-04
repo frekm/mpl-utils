@@ -11,29 +11,6 @@ import io
 PTS_PER_INCH = 72.0
 
 
-def _get_renderer(fig: Figure):
-    """
-    Get the renderer of the `fig`.
-
-    Taken from https://stackoverflow.com/questions/22667224/get-text-bounding-box-independent-of-backend/
-
-    Parameters
-    ----------
-    fig : :class:`matplotlib.figure.Figure`, optional
-        If ``None``, use last active figure.
-
-    Returns
-    -------
-    renderer : :class:`matplotlib.backend_bases.RendererBase`
-    """
-    fig = fig or plt.gcf()
-    if hasattr(fig.canvas, "get_renderer"):
-        return fig.canvas.get_renderer()  # type: ignore
-    fig.canvas.print_pdf(io.BytesIO())  # type: ignore
-    renderer = fig.__dict__.get("_cachedRenderer")
-    return renderer  # type: ignore
-
-
 def _normalize_pads(arg: ArrayLike) -> tuple[float, float, float, float]:
     """
     Processes arguments that represent margins of a figure.
