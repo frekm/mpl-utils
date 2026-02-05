@@ -47,4 +47,4 @@ from ._themes import (
 
 from ._version import __version__
 
-from .fixed_layout_engine import FixedLayoutEngine
+from .layout_engine import FixedLayoutEngine
