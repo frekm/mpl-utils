@@ -7,7 +7,7 @@ from numpy.typing import NDArray, ArrayLike
 
 import logging
 import warnings
-from typing import cast, TypedDict
+from typing import cast, TypedDict, Unpack
 
 from . import utils
 
@@ -120,8 +120,6 @@ class ParamsDict(TypedDict, total=True):
 def normalize_layout_params(
     params: ParamsDict, nrows: int, ncols: int
 ) -> NormParamsDict:
-    nparams = {}
-
     mpads_inch = normalize_margins(params["margin_pads_pts"]) / PTS_PER_INCH
     mpads_use_bbox = normalize_margins(params["margin_pads_ignore_labels"])
     hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / PTS_PER_INCH
@@ -129,12 +127,13 @@ def normalize_layout_params(
     vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / PTS_PER_INCH
     vpads_use_bbox = normalize_hv_pads(params["row_pads_ignore_labels"], nrows)
 
-    nparams["hpads_inch"] = (mpads_inch.l, *hpads_inch, mpads_inch.r)
-    nparams["hpads_use_bbox"] = (mpads_use_bbox.l, *hpads_use_bbox, mpads_use_bbox.r)
-    nparams["vpads_inch"] = (mpads_inch.t, *vpads_inch, mpads_inch.b)
-    nparams["vpads_use_bbox"] = (mpads_use_bbox.t, *vpads_use_bbox, mpads_use_bbox.b)
-
-    nparams["max_figwidth"] = float(params["max_figwidth"])
+    nparams: NormParamsDict = {
+        "hpads_inch": (mpads_inch.l, *hpads_inch, mpads_inch.r),
+        "hpads_use_bbox": (mpads_use_bbox.l, *hpads_use_bbox, mpads_use_bbox.r),
+        "vpads_inch": (mpads_inch.t, *vpads_inch, mpads_inch.b),
+        "vpads_use_bbox": (mpads_use_bbox.t, *vpads_use_bbox, mpads_use_bbox.b),
+        "max_figwidth": float(params["max_figwidth"]),
+    }
     return nparams
 
 
@@ -214,18 +213,18 @@ def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
     return rtn
 
 
-def get_bboxes_inch_grid(fig, axs) -> NDArray:
+def get_bboxes_inch_grid(fig, axs) -> utils.Array[Bbox]:
     bboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         bboxes_inch[i] = get_ax_bbox_inch(fig, ax)
-    return bboxes_inch
+    return bboxes_inch  # type: ignore
 
 
-def get_tbboxes_inch_grid(fig, axs, renderer) -> NDArray:
+def get_tbboxes_inch_grid(fig, axs, renderer) -> utils.Array[Bbox]:
     tbboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         tbboxes_inch[i] = get_ax_tbbox_inch(fig, ax, renderer)
-    return tbboxes_inch
+    return tbboxes_inch  # type: ignore
 
 
 def get_axes_grid(axes: list[Axes]) -> utils.Array[Axes]:
@@ -325,8 +324,8 @@ def add_vspace_inch(
     fig: Figure,
     idx: int,
     vspace: float,
-    axes: NDArray,
-    axes_bboxes_inch: NDArray,
+    axes: utils.Array[Axes],
+    axes_bboxes_inch: utils.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):
@@ -347,8 +346,8 @@ def add_hspace_inch(
     fig: Figure,
     idx: int,
     hspace: float,
-    axes: NDArray,
-    axes_bboxes_inch: NDArray,
+    axes: utils.Array[Axes],
+    axes_bboxes_inch: utils.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):
@@ -365,9 +364,9 @@ def add_hspace_inch(
             set_axes_position_inch(bbox_new, caxs[row][col][i], fig)
 
 
-def do_fixed_layout(fig: Figure, **params):
-    renderer = fig._get_renderer()
-    axes_grid = get_axes_grid(get_axes_for_layout(fig._localaxes))
+def do_fixed_layout(fig: Figure, **params: Unpack[ParamsDict]):
+    renderer = fig._get_renderer()  # type: ignore
+    axes_grid = get_axes_grid(get_axes_for_layout(fig._localaxes))  # type: ignore
     nrows, ncols = axes_grid.shape
     nparams = normalize_layout_params(params, nrows, ncols)
 
