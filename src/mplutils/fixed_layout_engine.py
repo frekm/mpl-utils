@@ -1,12 +1,12 @@
 from matplotlib.layout_engine import LayoutEngine
 import numpy as np
 
-from ._fixed_layout import Layouter, ParamsDict
+from ._fixed_layout import do_fixed_layout, validate_figure, ParamsDict
 
 
 class FixedLayoutEngine(LayoutEngine):
-    _colorbar_gridspec = False
     _adjust_compatible = False
+    _colorbar_gridspec = False
 
     def __init__(
         self,
@@ -28,15 +28,6 @@ class FixedLayoutEngine(LayoutEngine):
         row_pads_ignore_labels: bool | tuple[bool, ...] = False,
         max_figwidth: float = np.inf,
     ):
-        self.margin_pad_pts = margin_pads_pts
-        self.margin_pads_pts = margin_pads_pts
-        self.margin_pads_ignore_labels = margin_pads_ignore_labels
-        self.col_pads_pts = col_pads_pts
-        self.col_pads_ignore_labels = col_pads_ignore_labels
-        self.row_pads_pts = row_pads_pts
-        self.row_pads_ignore_labels = row_pads_ignore_labels
-        self.max_figwidth = max_figwidth
-
         self._params: ParamsDict = {
             "margin_pads_pts": margin_pads_pts,
             "margin_pads_ignore_labels": margin_pads_ignore_labels,
@@ -46,11 +37,7 @@ class FixedLayoutEngine(LayoutEngine):
             "row_pads_ignore_labels": row_pads_ignore_labels,
             "max_figwidth": max_figwidth,
         }
-
         self._is_executing = False
-
-    def get(self) -> ParamsDict:
-        return self._params
 
     def set(
         self,
@@ -78,13 +65,17 @@ class FixedLayoutEngine(LayoutEngine):
             if locals()[td] is not None:
                 self._params[td] = locals()[td]
 
+    def get(self) -> ParamsDict:
+        return self._params
+
     def execute(self, fig):
         if self._is_executing:
             return
 
         self._is_executing = True
 
-        layouter = Layouter(fig, **self._params)
-        layouter.execute()
-
-        self._is_executing = False
+        try:
+            validate_figure(fig)
+            do_fixed_layout(fig, **self._params)
+        finally:
+            self._is_executing = False

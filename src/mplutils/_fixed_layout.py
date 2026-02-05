@@ -1,43 +1,99 @@
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backend_bases import RendererBase
+from matplotlib.figure import Figure, SubFigure
 from matplotlib.axes import Axes
-from matplotlib.transforms import Bbox
 from matplotlib.gridspec import SubplotSpec
+from matplotlib.transforms import Bbox
 import numpy as np
 from numpy.typing import NDArray, ArrayLike
 
-from typing import TypedDict, Unpack, Final
 import logging
+import warnings
+from typing import cast, TypedDict
 
 from . import utils
 
-# from .fixed_layout_engine import FixedAxesLayoutEngine
-
-
-PTS_PER_INCH: Final = 72.0
 
 logger = logging.getLogger(__name__)
 
 
-def get_renderer(fig) -> RendererBase:
+PTS_PER_INCH = 72.0
+
+
+class InvalidFigureError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self) -> str:
+        return self.message
+
+
+def normalize_margins(arg: ArrayLike) -> utils.Quadrants:
     """
-    from https://stackoverflow.com/a/78560455
+    Processes arguments that represent margins of a figure.
+
+    Parameters
+    ----------
+    arg : array_like
+        1 value:
+            (top, right, bottom, left)
+        2 values:
+            (top, bottom), (right, left)
+        3 values:
+            top, (right, left), bottom
+        4 values:
+            top, right, bottom, left
     """
-    if hasattr(fig.canvas, "get_renderer"):
-        return fig.canvas.get_renderer()
-    elif hasattr(fig, "_get_renderer"):
-        return fig._get_renderer()
-    backend = matplotlib.get_backend()
-    raise AttributeError(f"Could not find a renderer for the '{backend}' backend.")
+    arg = np.asarray(arg)
+    if not arg.ndim > 0:
+        rtn = utils.Quadrants(arg, arg, arg, arg)
+    elif len(arg) == 1:
+        rtn = utils.Quadrants(arg[0], arg[0], arg[0], arg[0])
+    elif len(arg) == 2:
+        rtn = utils.Quadrants(arg[0], arg[1], arg[0], arg[1])
+    elif len(arg) == 3:
+        rtn = utils.Quadrants(arg[0], arg[1], arg[2], arg[1])
+    elif len(arg) == 4:
+        rtn = utils.Quadrants(*arg)
+    else:
+        raise ValueError(f"{arg=} has invalid length")
+    return rtn
+
+
+def normalize_hv_pads(vals: ArrayLike, n: int) -> NDArray:
+    """
+    Process arguments that are 'row/col'-like.
+
+    Parameters
+    ----------
+    vals : array_like
+        Values corresponding to the respective column/row.
+
+        value:
+            Global for all rows/cols.
+
+        (value, ...)
+            values corresponding to each row/col. Must have length `n`.
+
+    n : int
+        Number of rows/columns.
+
+    Returns
+    -------
+    values : ndarray
+        Array of length `n`.
+    """
+    vals = np.asarray(vals)
+    if not vals.ndim > 0:
+        vals = np.array([vals] * (n - 1))
+    elif len(vals) != n - 1:
+        raise ValueError(f"{vals=}, but must be scalar or of length {n-1}")
+    return vals
 
 
 class NormParamsDict(TypedDict, total=True):
-    hpads: np.ndarray[tuple[int], np.dtype[np.float64]]
-    hpads_use_bbox: np.ndarray[tuple[int], np.dtype[np.bool]]
-    vpads: np.ndarray[tuple[int], np.dtype[np.float64]]
-    vpads_use_bbox: np.ndarray[tuple[int], np.dtype[np.bool]]
+    hpads_inch: tuple[float, ...]
+    hpads_use_bbox: tuple[bool, ...]
+    vpads_inch: tuple[float, ...]
+    vpads_use_bbox: tuple[bool, ...]
     max_figwidth: float
 
 
@@ -61,357 +117,286 @@ class ParamsDict(TypedDict, total=True):
     max_figwidth: float
 
 
-class Layouter:
-    def __init__(self, fig: Figure, **params: Unpack[ParamsDict]) -> None:
-        self._fig = self._validate_figure(fig)
+def normalize_layout_params(
+    params: ParamsDict, nrows: int, ncols: int
+) -> NormParamsDict:
+    nparams = {}
 
-        # fig.canvas.draw()
-        self._renderer = fig._get_renderer()
-        self._params = params
-        self._axes_grid = self._get_axes_grid(self._get_axes_for_layout())
-        self._caxes_grid = self._get_caxes_grid()
-        self._nparams = self._normalize_layout_params()
+    mpads_inch = normalize_margins(params["margin_pads_pts"]) / PTS_PER_INCH
+    mpads_use_bbox = normalize_margins(params["margin_pads_ignore_labels"])
+    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / PTS_PER_INCH
+    hpads_use_bbox = normalize_hv_pads(params["col_pads_ignore_labels"], ncols)
+    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / PTS_PER_INCH
+    vpads_use_bbox = normalize_hv_pads(params["row_pads_ignore_labels"], nrows)
 
-    def execute(self) -> None:
-        bboxes = self._get_bboxes_grid()
-        caxes_bboxes = self._get_caxes_bboxes_grid()
+    nparams["hpads_inch"] = (mpads_inch.l, *hpads_inch, mpads_inch.r)
+    nparams["hpads_use_bbox"] = (mpads_use_bbox.l, *hpads_use_bbox, mpads_use_bbox.r)
+    nparams["vpads_inch"] = (mpads_inch.t, *vpads_inch, mpads_inch.b)
+    nparams["vpads_use_bbox"] = (mpads_use_bbox.t, *vpads_use_bbox, mpads_use_bbox.b)
 
-        for _ in range(2):
-            tbboxes = self._get_tbboxes_grid()
+    nparams["max_figwidth"] = float(params["max_figwidth"])
+    return nparams
 
-            hpads_now = self._get_hspaces(bboxes, tbboxes)
-            vpads_now = self._get_vspaces(bboxes, tbboxes)
 
-            hdeltas = self._nparams["hpads"] - hpads_now
-            for i, hdelta in enumerate(hdeltas):
-                self._add_hspace(i, hdelta, bboxes, caxes_bboxes)
-                bboxes = self._get_bboxes_grid()
-                caxes_bboxes = self._get_caxes_bboxes_grid()
-
-            vdeltas = self._nparams["vpads"] - vpads_now
-            for i, vdelta in enumerate(vdeltas):
-                self._add_vspace(i, vdelta, bboxes, caxes_bboxes)
-                bboxes = self._get_bboxes_grid()
-                caxes_bboxes = self._get_caxes_bboxes_grid()
-
-        fw = self._fig.get_size_inches()[0]
-        if fw > self._nparams["max_figwidth"]:
-            msg = f"figure size ({fw}in) larger than max_figwidth ({self._nparams['max_figwidth']}in)"
-            raise utils.InvalidFigureError(msg)
-
-    @property
-    def nrows(self) -> int:
-        return self._axes_grid.shape[0]
-
-    @property
-    def ncols(self) -> int:
-        return self._axes_grid.shape[1]
-
-    def _validate_figure(self, fig) -> Figure:
-        if not isinstance(fig, Figure):
-            raise utils.InvalidFigureError("figure must be matplotlib.figure.Figure")
-        gs = None
-        for ax in self._get_axes_in_figure(fig):
-            ss = ax.get_subplotspec()
-            if ss is None:
-                continue
-            gs_ = ss.get_gridspec()
-            if ss.num1 != ss.num2:
-                msg = "Cannot handle axes spanning multiple cells in a gridspec"
-                raise utils.InvalidFigureError(msg)
-            if gs is None:
-                gs = gs_
-            elif gs_ != gs:
-                msg = "FixedLayoutEngine cannot handle multiple gridspecs in figure"
-                raise utils.InvalidFigureError(msg)
+def validate_figure(fig):
+    if isinstance(fig, SubFigure):
+        raise InvalidFigureError("FixedLayoutEngine cannot handle nested figures")
+    gs = None
+    for ax in fig._localaxes:
+        if not ax.get_subplotspec():
+            continue
+        ss = ax.get_subplotspec()
+        gs_ = ss.get_gridspec()
+        if ss.num1 != ss.num2:
+            msg = "Cannot handle axes spanning multiple cells in a gridspec"
+            raise InvalidFigureError(msg)
         if gs is None:
-            raise utils.InvalidFigureError(
-                "Axes in figure need to be part of a gridspec"
-            )
-        return fig
+            gs = gs_
+        elif gs_ != gs:
+            msg = "FixedLayoutEngine cannot handle multiple gridspecs in figure"
+            raise InvalidFigureError(msg)
+    if gs is None:
+        raise InvalidFigureError("Axes in figure need to be part of a gridspec")
 
-    def _get_axes_in_figure(self, fig) -> list[Axes]:
-        try:
-            axes = getattr(fig, "_localaxes")
-        finally:
-            axes = fig.axes
-        return axes
 
-    def _norm_margins(self, arg: ArrayLike) -> utils.Quadrants:
-        """
-        Processes arguments that represent margins of a figure.
+def get_axes_for_layout(axes: list[Axes]) -> list[Axes]:
+    axes_for_layout = []
+    for ax in axes:
+        ss = ax.get_subplotspec()
+        if ss is None:
+            continue
+        axes_for_layout.append(ax)
+    return axes_for_layout
 
-        Parameters
-        ----------
-        arg : array_like
-            1 value:
-                (top, right, bottom, left)
-            2 values:
-                (top, bottom), (right, left)
-            3 values:
-                top, (right, left), bottom
-            4 values:
-                top, right, bottom, left
-        """
-        arg = np.asarray(arg)
-        if not arg.ndim > 0:
-            rtn = utils.Quadrants(arg, arg, arg, arg)
-        elif len(arg) == 1:
-            rtn = utils.Quadrants(arg[0], arg[0], arg[0], arg[0])
-        elif len(arg) == 2:
-            rtn = utils.Quadrants(arg[0], arg[1], arg[0], arg[1])
-        elif len(arg) == 3:
-            rtn = utils.Quadrants(arg[0], arg[1], arg[2], arg[1])
-        elif len(arg) == 4:
-            rtn = utils.Quadrants(*arg)
-        else:
-            raise ValueError(f"{arg=} has invalid length")
-        return rtn
 
-    def _norm_hv_space(self, vals: ArrayLike, n: int) -> NDArray:
-        """
-        Process arguments that are 'row/col'-like.
+def get_ax_bbox_inch(fig, ax) -> Bbox:
+    fw, fh = fig.get_size_inches()
+    bbox = ax.get_position()
+    return Bbox([[bbox.x0 * fw, bbox.y0 * fh], [bbox.x1 * fw, bbox.y1 * fh]])
 
-        Parameters
-        ----------
-        vals : array_like
-            Values corresponding to the respective column/row.
 
-            value:
-                Global for all rows/cols.
+def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
+    dpi = fig.dpi
+    tbbox_ax = ax.get_tightbbox(renderer, for_layout_only=False)
 
-            (value, ...)
-                values corresponding to each row/col. Must have length `n`.
+    xy_candidates = utils.Quadrants(
+        [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
+    )
 
-        n : int
-            Number of rows/columns.
+    for cb in ax._colorbars:
+        tbbox_cb = cb.get_tightbbox(renderer)
+        location = cb._colorbar_info["location"]
+        if location == "left":
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.bottom.append(tbbox_cb.y0)
+        if location == "right":
+            xy_candidates.right.append(tbbox_cb.x1)
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.bottom.append(tbbox_cb.y0)
+        if location == "top":
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.right.append(tbbox_cb.x1)
+        if location == "bottom":
+            xy_candidates.bottom.append(tbbox_cb.y0)
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.right.append(tbbox_cb.x1)
 
-        Returns
-        -------
-        values : ndarray
-            Array of length `n`.
-        """
-        vals = np.asarray(vals)
-        if not vals.ndim > 0:
-            vals = np.array([vals] * (n - 1))
-        elif len(vals) != n - 1:
-            raise ValueError(f"{vals=}, but must be scalar or of length {n-1}")
-        return vals
+    relevant_xy = (
+        np.min([x0 / dpi for x0 in xy_candidates.left]),
+        np.min([y0 / dpi for y0 in xy_candidates.bottom]),
+        np.max([x1 / dpi for x1 in xy_candidates.right]),
+        np.max([y1 / dpi for y1 in xy_candidates.top]),
+    )
 
-    def _normalize_layout_params(self) -> NormParamsDict:
-        mpads_inch = self._norm_margins(self._params["margin_pads_pts"]) / PTS_PER_INCH
-        mpads_use_bbox = self._norm_margins(self._params["margin_pads_ignore_labels"])
-        hpads_inch = (
-            self._norm_hv_space(self._params["col_pads_pts"], self.ncols) / PTS_PER_INCH
-        )
-        hpads_use_bbox = self._norm_hv_space(
-            self._params["col_pads_ignore_labels"], self.ncols
-        )
-        vpads_inch = (
-            self._norm_hv_space(self._params["row_pads_pts"], self.nrows) / PTS_PER_INCH
-        )
-        vpads_use_bbox = self._norm_hv_space(
-            self._params["row_pads_ignore_labels"], self.nrows
-        )
+    rtn = Bbox.from_extents(*relevant_xy)
+    return rtn
 
-        nparams: NormParamsDict = {
-            "hpads": np.array((mpads_inch.l, *hpads_inch, mpads_inch.r)),
-            "hpads_use_bbox": np.array(
-                (mpads_use_bbox.l, *hpads_use_bbox, mpads_use_bbox.r)
-            ),
-            "vpads": np.array((mpads_inch.t, *vpads_inch, mpads_inch.b)),
-            "vpads_use_bbox": np.array(
-                (mpads_use_bbox.t, *vpads_use_bbox, mpads_use_bbox.b)
-            ),
-            "max_figwidth": float(self._params["max_figwidth"]),
-        }
-        return nparams
 
-    def _get_axes_for_layout(self) -> list[Axes]:
-        axes_for_layout = []
-        for ax in self._get_axes_in_figure(self._fig):
-            ss = ax.get_subplotspec()
-            if ss is None:
-                continue
-            axes_for_layout.append(ax)
-        return axes_for_layout
+def get_bboxes_inch_grid(fig, axs) -> NDArray:
+    bboxes_inch = np.empty_like(axs, dtype=Bbox)
+    for i, ax in np.ndenumerate(axs):
+        bboxes_inch[i] = get_ax_bbox_inch(fig, ax)
+    return bboxes_inch
 
-    def _get_axes_grid(self, axes_in_layout: list[Axes]) -> utils.Array[Axes]:
-        subplotspecs: dict[Axes, SubplotSpec] = {}
-        first = True
-        for ax in axes_in_layout:
-            ss = ax.get_subplotspec()
-            subplotspecs[ax] = ss
-            if first:
-                first = False
-                gridspec = ss.get_gridspec()
-                nrows, ncols = gridspec.get_geometry()
 
-        axes_grid = np.empty((nrows, ncols), dtype=Axes)
+def get_tbboxes_inch_grid(fig, axs, renderer) -> NDArray:
+    tbboxes_inch = np.empty_like(axs, dtype=Bbox)
+    for i, ax in np.ndenumerate(axs):
+        tbboxes_inch[i] = get_ax_tbbox_inch(fig, ax, renderer)
+    return tbboxes_inch
 
-        for i, _ in np.ndenumerate(axes_grid):
-            for ax in axes_in_layout:
-                if subplotspecs[ax] == gridspec[i]:
-                    axes_grid[i] = ax
 
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"got a grid {axes_grid.shape}")
-            for (row, col), ax in np.ndenumerate(axes_grid):
-                logger.debug(f"{(row,col)}: {ax.get_label()}")
+def get_axes_grid(axes: list[Axes]) -> utils.Array[Axes]:
+    subplotspecs: dict[Axes, SubplotSpec] = {}
+    first = True
+    for ax in axes:
+        ss = ax.get_subplotspec()
+        ss = cast(SubplotSpec, ss)
+        subplotspecs[ax] = ss
+        if first:
+            first = False
+            gridspec = ss.get_gridspec()
+            nrows, ncols = gridspec.get_geometry()
 
-        return axes_grid  # type: ignore
+    axes_grid = np.empty((nrows, ncols), dtype=Axes)
 
-    def _get_bbox(self, ax: Axes) -> Bbox:
-        fw, fh = self._fig.get_size_inches()
-        pos = ax.get_position()
-        return Bbox.from_extents(pos.x0 * fw, pos.y0 * fh, pos.x1 * fw, pos.y1 * fh)
+    for i, _ in np.ndenumerate(axes_grid):
+        for ax in axes:
+            if subplotspecs[ax] == gridspec[i]:
+                axes_grid[i] = ax
 
-    def _get_bboxes_grid(self) -> utils.Array[Bbox]:
-        bboxes = np.empty_like(self._axes_grid, dtype=object)
-        for i, ax in np.ndenumerate(self._axes_grid):
-            bboxes[i] = self._get_bbox(ax)
-        return bboxes
+    if logger.isEnabledFor(logging.DEBUG):
+        for (row, col), ax in np.ndenumerate(axes_grid):
+            logger.debug(f"{(row,col)}: {ax.get_label()}")
 
-    def _get_tbboxes(self, ax) -> Bbox:
-        dpi = self._fig.dpi
-        tbbox_ax = ax.get_tightbbox(self._renderer, for_layout_only=False)
+    return axes_grid  # type: ignore
 
-        xy_candidates = utils.Quadrants(
-            [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
-        )
 
-        for cax in ax._colorbars:
-            tbbox_cb = cax.get_tightbbox(self._renderer)
-            location = cax._colorbar_info["location"]
-            if location == "left":
-                xy_candidates.left.append(tbbox_cb.x0)
-                xy_candidates.top.append(tbbox_cb.y1)
-                xy_candidates.bottom.append(tbbox_cb.y0)
-            if location == "right":
-                xy_candidates.right.append(tbbox_cb.x1)
-                xy_candidates.top.append(tbbox_cb.y1)
-                xy_candidates.bottom.append(tbbox_cb.y0)
-            if location == "top":
-                xy_candidates.top.append(tbbox_cb.y1)
-                xy_candidates.left.append(tbbox_cb.x0)
-                xy_candidates.right.append(tbbox_cb.x1)
-            if location == "bottom":
-                xy_candidates.bottom.append(tbbox_cb.y0)
-                xy_candidates.left.append(tbbox_cb.x0)
-                xy_candidates.right.append(tbbox_cb.x1)
+def select_bboxes(use_bbox: bool, bboxes: NDArray, tbboxes: NDArray):
+    return bboxes if use_bbox else tbboxes
 
-        relevant_xy = (
-            np.min([x0 / dpi for x0 in xy_candidates.left]),
-            np.min([y0 / dpi for y0 in xy_candidates.bottom]),
-            np.max([x1 / dpi for x1 in xy_candidates.right]),
-            np.max([y1 / dpi for y1 in xy_candidates.top]),
-        )
 
-        rtn = Bbox.from_extents(*relevant_xy)
-        return rtn
+def get_hspaces_inch(
+    figwidth: float, use_bbox: tuple[bool, ...], bboxes: NDArray, tbboxes: NDArray
+):
+    nspaces = len(use_bbox)
+    hpads_inch = np.empty(nspaces, dtype=float)
 
-    def _get_tbboxes_grid(self) -> utils.Array[Bbox]:
-        tbboxes = np.empty_like(self._axes_grid, dtype=object)
-        for i, ax in np.ndenumerate(self._axes_grid):
-            tbboxes[i] = self._get_tbboxes(ax)
-        return tbboxes
+    first_bboxes = select_bboxes(use_bbox[0], bboxes, tbboxes)[:, 0]
+    hpads_inch[0] = np.amin([t.x0 for t in first_bboxes])
 
-    def _get_caxes_grid(self) -> list[list[list[Axes]]]:
-        caxes = []
-        for axs_in_row in self._axes_grid:
-            caxes.append([])
-            for ax in axs_in_row:
-                cax = ax._colorbars
-                if cax and cax in caxes:
-                    msg = "Cannot handle colorbars that are attached to multiple axes"
-                    raise utils.InvalidFigureError(msg)
-                caxes[-1].append(cax)
-        return caxes
+    for i in range(1, nspaces - 1):
+        left_bboxes = select_bboxes(use_bbox[i], bboxes, tbboxes)[:, i]
+        right_bboxes = select_bboxes(use_bbox[i], bboxes, tbboxes)[:, i - 1]
+        left = np.amin([t.x0 for t in left_bboxes])
+        right = np.amax([t.x1 for t in right_bboxes])
+        hpads_inch[i] = left - right
 
-    def _get_caxes_bboxes_grid(self) -> list[list[list[Bbox]]]:
-        return [
-            [[self._get_bbox(ax) for ax in caxes] for caxes in caxes_row]
-            for caxes_row in self._caxes_grid
-        ]
+    last_bboxes = select_bboxes(use_bbox[-1], bboxes, tbboxes)[:, -1]
+    hpads_inch[-1] = figwidth - np.amin([t.x1 for t in last_bboxes])
 
-    def _select_box(self, use_bbox: bool, bboxes: NDArray, tbboes: NDArray) -> NDArray:
-        return bboxes if use_bbox else tbboes
+    return hpads_inch
 
-    def _get_hspaces(
-        self, bboxes: utils.Array[Bbox], tbboxes: utils.Array[Bbox]
-    ) -> NDArray[np.float64]:
-        use_bbox = self._nparams["hpads_use_bbox"]
-        nspaces = len(use_bbox)
-        hpads = np.empty(nspaces, dtype=float)
 
-        first_bboxes = self._select_box(use_bbox[0], bboxes, tbboxes)[:, 0]
-        hpads[0] = np.amin([t.x0 for t in first_bboxes])
+def get_vspaces_inch(
+    figheight: float, use_bbox: tuple[bool, ...], bboxes: NDArray, tbboxes: NDArray
+):
+    nspaces = len(use_bbox)
+    vpads_inch = np.empty(nspaces, dtype=float)
 
-        for i in range(1, nspaces - 1):
-            left_bboxes = self._select_box(use_bbox[i], bboxes, tbboxes)[:, i]
-            right_bboxes = self._select_box(use_bbox[i], bboxes, tbboxes)[:, i - 1]
-            left = np.amin([t.x0 for t in left_bboxes])
-            right = np.amax([t.x1 for t in right_bboxes])
-            hpads[i] = left - right
+    first_bboxes = select_bboxes(use_bbox[0], bboxes, tbboxes)[0]
+    vpads_inch[0] = figheight - np.amax([t.y1 for t in first_bboxes])
 
-        last_bboxes = self._select_box(use_bbox[-1], bboxes, tbboxes)[:, -1]
-        fw = self._fig.get_size_inches()[0]
-        hpads[-1] = fw - np.amax([t.x1 for t in last_bboxes])
+    for i in range(1, nspaces - 1):
+        top_bboxes = select_bboxes(use_bbox[i], bboxes, tbboxes)[i]
+        bottom_bboxes = select_bboxes(use_bbox[i], bboxes, tbboxes)[i - 1]
+        top = np.amax([t.y1 for t in top_bboxes])
+        bottom = np.amin([t.y0 for t in bottom_bboxes])
+        vpads_inch[i] = bottom - top
 
-        return hpads
+    last_bboxes = select_bboxes(use_bbox[-1], bboxes, tbboxes)[-1]
+    vpads_inch[-1] = np.amin([t.y0 for t in last_bboxes])
 
-    def _get_vspaces(
-        self, bboxes: utils.Array[Bbox], tbboxes: utils.Array[Bbox]
-    ) -> NDArray[np.float64]:
-        use_bbox = self._nparams["vpads_use_bbox"]
-        nspaces = len(use_bbox)
-        vpads_inch = np.empty(nspaces, dtype=float)
+    return vpads_inch
 
-        first_bboxes = self._select_box(use_bbox[0], bboxes, tbboxes)[0]
-        fh = self._fig.get_size_inches()[1]
-        vpads_inch[0] = fh - np.amax([t.y1 for t in first_bboxes])
 
-        for i in range(1, nspaces - 1):
-            top_bboxes = self._select_box(use_bbox[i], bboxes, tbboxes)[i]
-            bottom_bboxes = self._select_box(use_bbox[i], bboxes, tbboxes)[i - 1]
-            top = np.amax([t.y1 for t in top_bboxes])
-            bottom = np.amin([t.y0 for t in bottom_bboxes])
-            vpads_inch[i] = bottom - top
+def set_axes_position_inch(bbox_inch: Bbox, ax: Axes, fig: Figure) -> None:
+    fw, fh = fig.get_size_inches()
+    bbox = Bbox.from_extents(
+        bbox_inch.x0 / fw, bbox_inch.y0 / fh, bbox_inch.x1 / fw, bbox_inch.y1 / fh
+    )
+    ax.set_position(bbox)
 
-        last_bboxes = self._select_box(use_bbox[-1], bboxes, tbboxes)[-1]
-        vpads_inch[-1] = np.amin([t.y0 for t in last_bboxes])
 
-        return vpads_inch
+def get_caxes_grid(axes) -> list[list[list[Axes]]]:
+    return [[ax._colorbars for ax in axes_] for axes_ in axes]
 
-    def _add_vspace(self, idx, space, axes_bboxes, caxes_bboxes):
-        fw_old, fh_old = self._fig.get_size_inches()
-        fh_new = fh_old + space
-        self._fig.set_size_inches(fw_old, fh_new, forward=True)
 
-        for (row, col), ba in np.ndenumerate(axes_bboxes):
-            shift = 0.0 if row >= idx else space
-            bbox_new = Bbox.from_bounds(ba.x0, ba.y0 + shift, ba.width, ba.height)
-            self._set_axes_position(bbox_new, self._axes_grid[row, col])
-            for i, bc in enumerate(caxes_bboxes[row][col]):
-                bbox_new = Bbox.from_bounds(bc.x0, bc.y0 + shift, bc.width, bc.height)
-                self._set_axes_position(bbox_new, self._caxes_grid[row][col][i])
+def get_caxes_bboxes_grid(fig, cbar_axes) -> list[list[list[Bbox]]]:
+    return [
+        [[get_ax_bbox_inch(fig, ax) for ax in caxes_rc] for caxes_rc in caxes_row]
+        for caxes_row in cbar_axes
+    ]
 
-    def _add_hspace(self, idx, space, axes_bboxes, caxes_bboxes):
-        fw_old, fh_old = self._fig.get_size_inches()
-        fw_new = fw_old + space
-        self._fig.set_size_inches(fw_new, fh_old, forward=True)
 
-        for (row, col), ba in np.ndenumerate(axes_bboxes):
-            shift = 0.0 if col < idx else space
-            bbox_new = Bbox.from_bounds(ba.x0 + shift, ba.y0, ba.width, ba.height)
-            self._set_axes_position(bbox_new, self._axes_grid[row, col])
-            for i, bc in enumerate(caxes_bboxes[row][col]):
-                bbox_new = Bbox.from_bounds(bc.x0 + shift, bc.y0, bc.width, bc.height)
-                self._set_axes_position(bbox_new, self._caxes_grid[row][col][i])
+def add_vspace_inch(
+    fig: Figure,
+    idx: int,
+    vspace: float,
+    axes: NDArray,
+    axes_bboxes_inch: NDArray,
+    caxs: list[list[list[Axes]]],
+    cax_bboxes_inch: list[list[list[Bbox]]],
+):
+    fw_old, fh_old = fig.get_size_inches()
+    fh_new = fh_old + vspace
+    fig.set_size_inches(fw_old, fh_new, forward=True)
 
-    def _set_axes_position(self, bbox: Bbox, ax: Axes):
-        fw, fh = self._fig.get_size_inches()
-        bbox_figcoords = Bbox.from_extents(
-            bbox.x0 / fw, bbox.y0 / fh, bbox.x1 / fw, bbox.y1 / fh
-        )
-        ax.set_position(bbox_figcoords)
+    for (row, col), ba in np.ndenumerate(axes_bboxes_inch):
+        shift = 0.0 if row >= idx else vspace
+        bbox_new = Bbox.from_bounds(ba.x0, ba.y0 + shift, ba.width, ba.height)
+        set_axes_position_inch(bbox_new, axes[row, col], fig)
+        for i, bc in enumerate(cax_bboxes_inch[row][col]):
+            bbox_new = Bbox.from_bounds(bc.x0, bc.y0 + shift, bc.width, bc.height)
+            set_axes_position_inch(bbox_new, caxs[row][col][i], fig)
+
+
+def add_hspace_inch(
+    fig: Figure,
+    idx: int,
+    hspace: float,
+    axes: NDArray,
+    axes_bboxes_inch: NDArray,
+    caxs: list[list[list[Axes]]],
+    cax_bboxes_inch: list[list[list[Bbox]]],
+):
+    fw_old, fh_old = fig.get_size_inches()
+    fw_new = fw_old + hspace
+    fig.set_size_inches(fw_new, fh_old, forward=True)
+
+    for (row, col), ba in np.ndenumerate(axes_bboxes_inch):
+        shift = 0.0 if col < idx else hspace
+        bbox_new = Bbox.from_bounds(ba.x0 + shift, ba.y0, ba.width, ba.height)
+        set_axes_position_inch(bbox_new, axes[row, col], fig)
+        for i, bc in enumerate(cax_bboxes_inch[row][col]):
+            bbox_new = Bbox.from_bounds(bc.x0 + shift, bc.y0, bc.width, bc.height)
+            set_axes_position_inch(bbox_new, caxs[row][col][i], fig)
+
+
+def do_fixed_layout(fig: Figure, **params):
+    renderer = fig._get_renderer()
+    axes_grid = get_axes_grid(get_axes_for_layout(fig._localaxes))
+    nrows, ncols = axes_grid.shape
+    nparams = normalize_layout_params(params, nrows, ncols)
+
+    caxs = get_caxes_grid(axes_grid)
+    caxs_bboxes = get_caxes_bboxes_grid(fig, caxs)
+    bboxes = get_bboxes_inch_grid(fig, axes_grid)
+
+    for _ in range(2):
+        tbboxes = get_tbboxes_inch_grid(fig, axes_grid, renderer)
+
+        fw, fh = fig.get_size_inches()
+        hpads_now = get_hspaces_inch(fw, nparams["hpads_use_bbox"], bboxes, tbboxes)
+        vpads_now = get_vspaces_inch(fh, nparams["vpads_use_bbox"], bboxes, tbboxes)
+
+        hdeltas = nparams["hpads_inch"] - hpads_now
+        for i, hdelta in enumerate(hdeltas):
+            add_hspace_inch(fig, i, hdelta, axes_grid, bboxes, caxs, caxs_bboxes)
+            bboxes = get_bboxes_inch_grid(fig, axes_grid)
+            caxs = get_caxes_grid(axes_grid)
+            caxs_bboxes = get_caxes_bboxes_grid(fig, caxs)
+
+        vdeltas = nparams["vpads_inch"] - vpads_now
+        for i, vdelta in enumerate(vdeltas):
+            add_vspace_inch(fig, i, vdelta, axes_grid, bboxes, caxs, caxs_bboxes)
+            bboxes = get_bboxes_inch_grid(fig, axes_grid)
+            caxs = get_caxes_grid(axes_grid)
+            caxs_bboxes = get_caxes_bboxes_grid(fig, caxs)
+
+    fw = fig.get_size_inches()[0]
+    if fw > nparams["max_figwidth"]:
+        msg = f"figure size ({fw}in) larger than max_figwidth ({nparams['max_figwidth']}in)"
+        warnings.warn(msg, stacklevel=3)
