@@ -6,6 +6,7 @@
 
 .. autoclass:: {{ objname }}
 
+   {% if objname != "TrimmedLayoutEngine" %}
    {% block methods %}
    {% if methods %}
    .. rubric:: Methods
@@ -19,4 +20,4 @@
    {%- endfor %}
    {% endif %}
    {% endblock %}
-   
+   {% endif %}

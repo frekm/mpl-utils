@@ -34,5 +34,6 @@ API reference
     square_polar_axes
     textwithbox
     update_colorbars
+    TrimmedLayoutEngine
     Area
     Quadrants

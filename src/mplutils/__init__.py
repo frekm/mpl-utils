@@ -20,6 +20,8 @@ from ._layout import (
     update_colorbars,
 )
 
+from ._trimmed_layout_engine import TrimmedLayoutEngine
+
 from ._misc import (
     savefig,
     for_pcolormesh,
