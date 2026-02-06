@@ -1,13 +1,10 @@
+from matplotlib.transforms import Bbox
+from matplotlib.figure import Figure
 from matplotlib.layout_engine import ConstrainedLayoutEngine
 from matplotlib.figure import Figure
 
 import numpy as np
 from numpy.typing import ArrayLike
-from matplotlib.transforms import Bbox
-from matplotlib.figure import Figure
-
-
-PTS_PER_INCH = 72.0
 
 
 def _normalize_pads(arg: ArrayLike) -> tuple[float, float, float, float]:
@@ -31,7 +28,8 @@ def _normalize_pads(arg: ArrayLike) -> tuple[float, float, float, float]:
     top, right, bottom, left : float
         Padding in inch
     """
-    arg = np.asarray(arg, dtype=float) / PTS_PER_INCH
+    pts_per_inch = 72
+    arg = np.asarray(arg, dtype=float) / pts_per_inch
     if not arg.ndim > 0:
         return (float(arg), float(arg), float(arg), float(arg))
     elif len(arg) == 1:
@@ -73,10 +71,65 @@ def _trim_figure(fig, pad_pts: float | tuple[float, ...]):
     fig.set_size_inches(new_w_in, new_h_in, forward=True)
 
 
-class TrimmedConstrainedLayoutEngine(ConstrainedLayoutEngine):
+class TrimmedLayoutEngine(ConstrainedLayoutEngine):
+    """
+    Layout Engine that trims excess figure after a "compressed" layout is applied.
+
+    Parameters
+    ----------
+    pad_pts : float | Iterable[float]
+        Set padding around the subplots in pts.
+
+        Depending on how many values are passed, they correspond to:
+
+        1 value:
+            (top, right, bottom, left)
+
+        2 values:
+            (top, bottom), (right, left)
+
+        3 values:
+            top, (right, left), bottom
+
+        4 values:
+            top, right, bottom, left
+
+    **kwargs
+        Keyword arguments passed to
+        :class:`matplotlib.layout_engine.ConstrainedLayoutEngine`
+
+        See also
+        `matplotlib's constrained layout guide <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html#constrainedlayout-guide>`__.
+
+    Notes
+    -----
+    Interactive resizeing of the figure (e.g., after calling plt.show()) will
+    result in messed up layouts. Don't use this engine for these use cases.
+
+    Examples
+    --------
+
+    Since the compressed layout does not change figure size (for good reasons),
+    a fixed aspect of an axes may result in empty space in the figure:
+
+    .. plot:: _examples/layout/trimmedlayoutengine.py
+        :include-source:
+
+    `TrimmedLayoutEngine` simply removes this extra space after the compressed
+    layout has been applied:
+
+    .. plot:: _examples/layout/trimmedlayoutengine2.py
+        :include-source:
+    """
+
     def __init__(
         self,
-        pad_pts: float | tuple[float, ...] = 5.0,
+        pad_pts: (
+            float
+            | tuple[float, float]
+            | tuple[float, float, float]
+            | tuple[float, float, float, float]
+        ) = 5.0,
         **kwargs,
     ):
         super().__init__(compress=True, **kwargs)

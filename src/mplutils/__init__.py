@@ -19,7 +19,7 @@ from ._layout import (
     align_axes_vertically,
 )
 
-from ._trimmed_constrained_layout_engine import TrimmedConstrainedLayoutEngine
+from ._trimmed_layout_engine import TrimmedLayoutEngine
 
 from ._misc import (
     savefig,
