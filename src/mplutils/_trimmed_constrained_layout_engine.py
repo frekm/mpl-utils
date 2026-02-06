@@ -5,7 +5,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib.transforms import Bbox
 from matplotlib.figure import Figure
-import io
 
 
 PTS_PER_INCH = 72.0
