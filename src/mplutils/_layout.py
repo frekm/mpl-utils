@@ -287,7 +287,8 @@ def set_axes_size_inches(
     new_pos = Bbox.from_bounds(new_x0, new_y0, new_size[0], new_size[1])
 
     for cax in ax._colorbars:
-        cax.set_autoscale_on(True)
+        cax.set_box_aspect(None)
+        cax.set_aspect("auto")
         old_cbar = cax.get_position().frozen()
         sw = new_size[0] / old_pos.width
         sh = new_size[1] / old_pos.height
