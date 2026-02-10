@@ -71,11 +71,7 @@ class FixedLayoutEngine(LayoutEngine):
     def execute(self, fig):
         if self._is_executing:
             return
-
         self._is_executing = True
-
-        try:
-            validate_figure(fig)
-            do_fixed_layout(fig, **self._params)
-        finally:
-            self._is_executing = False
+        validate_figure(fig)
+        do_fixed_layout(fig, **self._params)
+        self._is_executing = False

@@ -6,24 +6,12 @@ import numpy as np
 from numpy.typing import NDArray, ArrayLike
 
 import logging
-import warnings
 from typing import cast, TypedDict, Unpack
 
 from . import utils
 
 
 logger = logging.getLogger(__name__)
-
-
-PTS_PER_INCH = 72.0
-
-
-class InvalidFigureError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-    def __str__(self) -> str:
-        return self.message
 
 
 def normalize_margins(arg: ArrayLike) -> utils.Quadrants:
@@ -120,11 +108,11 @@ class ParamsDict(TypedDict, total=True):
 def normalize_layout_params(
     params: ParamsDict, nrows: int, ncols: int
 ) -> NormParamsDict:
-    mpads_inch = normalize_margins(params["margin_pads_pts"]) / PTS_PER_INCH
+    mpads_inch = normalize_margins(params["margin_pads_pts"]) / utils.PTS_PER_INCH
     mpads_use_bbox = normalize_margins(params["margin_pads_ignore_labels"])
-    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / PTS_PER_INCH
+    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / utils.PTS_PER_INCH
     hpads_use_bbox = normalize_hv_pads(params["col_pads_ignore_labels"], ncols)
-    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / PTS_PER_INCH
+    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / utils.PTS_PER_INCH
     vpads_use_bbox = normalize_hv_pads(params["row_pads_ignore_labels"], nrows)
 
     nparams: NormParamsDict = {
@@ -139,7 +127,7 @@ def normalize_layout_params(
 
 def validate_figure(fig):
     if isinstance(fig, SubFigure):
-        raise InvalidFigureError("FixedLayoutEngine cannot handle nested figures")
+        raise utils.InvalidFigureError("FixedLayoutEngine cannot handle nested figures")
     gs = None
     for ax in fig._localaxes:
         if not ax.get_subplotspec():
@@ -148,14 +136,14 @@ def validate_figure(fig):
         gs_ = ss.get_gridspec()
         if ss.num1 != ss.num2:
             msg = "Cannot handle axes spanning multiple cells in a gridspec"
-            raise InvalidFigureError(msg)
+            raise utils.InvalidFigureError(msg)
         if gs is None:
             gs = gs_
         elif gs_ != gs:
             msg = "FixedLayoutEngine cannot handle multiple gridspecs in figure"
-            raise InvalidFigureError(msg)
+            raise utils.InvalidFigureError(msg)
     if gs is None:
-        raise InvalidFigureError("Axes in figure need to be part of a gridspec")
+        raise utils.InvalidFigureError("Axes in figure need to be part of a gridspec")
 
 
 def get_axes_for_layout(axes: list[Axes]) -> list[Axes]:
@@ -398,4 +386,4 @@ def do_fixed_layout(fig: Figure, **params: Unpack[ParamsDict]):
     fw = fig.get_size_inches()[0]
     if fw > nparams["max_figwidth"]:
         msg = f"figure size ({fw}in) larger than max_figwidth ({nparams['max_figwidth']}in)"
-        warnings.warn(msg, stacklevel=3)
+        raise utils.InvalidFigureError(msg)

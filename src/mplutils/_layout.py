@@ -15,10 +15,6 @@ from numpy.typing import ArrayLike, NDArray
 from dataclasses import dataclass
 
 
-MM_PER_INCH: Final = 25.4
-PTS_PER_INCH: Final = 72.0
-PTS_PER_MM: Final = PTS_PER_INCH / MM_PER_INCH
-
 from ._misc import Array
 
 T = TypeVar("T")

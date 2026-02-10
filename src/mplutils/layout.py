@@ -14,9 +14,7 @@ from ._layout import (
     set_axes_width_inch,
     set_axes_height_inch,
 )
-
-PTS_PER_INCH: Final = 72.0
-MM_PER_INCH: Final = 25.4
+from . import utils
 
 
 def set_axes_size(
@@ -96,7 +94,7 @@ def set_colorbar_thickness_pts(colorbar: Colorbar | Axes, thickness: float) -> N
     cax.set_aspect("auto")
     cax.set_box_aspect(None)
     if location in ("left", "right"):
-        size = thickness / PTS_PER_INCH / fw
+        size = thickness / utils.PTS_PER_INCH / fw
         cb_info["fraction"] = size / pos_parent.width
         cb_info["aspect"] = size / pos_cax.height
         if location == "left":
@@ -104,7 +102,7 @@ def set_colorbar_thickness_pts(colorbar: Colorbar | Axes, thickness: float) -> N
         else:  # right
             cax.set_position((pos_cax.x0, pos_cax.y0, size, pos_cax.height))
     else:  # top bottom
-        size = thickness / PTS_PER_INCH / fh
+        size = thickness / utils.PTS_PER_INCH / fh
         cb_info["fraction"] = size / pos_parent.height
         cb_info["aspect"] = pos_cax.width / size
         if location == "top":
@@ -130,7 +128,7 @@ def set_colorbar_pad_pts(colorbar: Colorbar | Axes, pad: float) -> None:
     pos_cax = cax.get_position()
     fw, fh = fig.get_size_inches()
     if location in ("left", "right"):
-        gap = pad / PTS_PER_INCH / fw
+        gap = pad / utils.PTS_PER_INCH / fw
         if location == "left":
             x0 = pos_parent.x0 - gap - pos_cax.width
             pos = Bbox.from_bounds(x0, pos_cax.y0, pos_cax.width, pos_cax.height)
@@ -140,7 +138,7 @@ def set_colorbar_pad_pts(colorbar: Colorbar | Axes, pad: float) -> None:
             pos = Bbox.from_bounds(x0, pos_cax.y0, pos_cax.width, pos_cax.height)
             cax.set_position(pos)
     else:  # top bottom
-        gap = pad / PTS_PER_INCH / fh
+        gap = pad / utils.PTS_PER_INCH / fh
         if location == "top":
             y0 = pos_parent.y1 + gap
             pos = Bbox.from_bounds(pos_cax.x0, y0, pos_cax.width, pos_cax.height)
