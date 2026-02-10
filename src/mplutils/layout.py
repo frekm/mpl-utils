@@ -10,15 +10,19 @@ import numpy as np
 
 from ._layout import (
     normalize_anchor,
+    normalize_width_height,
     set_axes_width_inch,
     set_axes_height_inch,
 )
 
 PTS_PER_INCH: Final = 72.0
+MM_PER_INCH: Final = 25.4
 
 
-def set_axes_size_inches(
-    size_inch: float | tuple[float, float],
+def set_axes_size(
+    width_inch: float,
+    height_inch: float | None = None,
+    *,
     aspect: Literal["auto"] | float = "auto",
     ax: None | Axes = None,
     anchor: (
@@ -66,24 +70,11 @@ def set_axes_size_inches(
     fig = ax.figure
     if not isinstance(fig, Figure):
         raise ValueError("ax must belong to a Figure (not SubFigure)")
-
-    size = np.asarray(size_inch).astype(float)
-    if not size.ndim > 0:
-        if aspect == "auto":
-            width, height = float(size), float(size)
-        else:
-            width, height = float(size), float(size * aspect)
-    else:
-        if aspect != "auto" and size[1] / size[0] != aspect:
-            raise ValueError("size_inch and aspect contradict each other")
-        else:
-            width, height = float(size[0]), float(size[1])
-
+    width_inch, height_inch = normalize_width_height(width_inch, height_inch, aspect)
     anchor_ = normalize_anchor(ax.get_anchor() if anchor == "auto" else anchor)
     ax.set_anchor(anchor_)
-
-    set_axes_width_inch(fig, ax, width, anchor_)
-    set_axes_height_inch(fig, ax, height, anchor_)
+    set_axes_width_inch(fig, ax, width_inch, anchor_)
+    set_axes_height_inch(fig, ax, height_inch, anchor_)
 
 
 def set_colorbar_thickness_pts(colorbar: Colorbar | Axes, thickness: float) -> None:

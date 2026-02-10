@@ -109,3 +109,16 @@ def normalize_anchor(anchor) -> tuple[float, float]:
         anchor = coefs[anchor]
 
     return anchor
+
+
+def normalize_width_height(
+    w: float,
+    h: float | None,
+    aspect: float | Literal["auto"],
+) -> tuple[float, float]:
+
+    if h is None:
+        h = w if aspect == "auto" else w * aspect
+    elif aspect != "auto" and h / w != aspect:
+        raise ValueError("width, height, and aspect-ratio contradict each other")
+    return w, h

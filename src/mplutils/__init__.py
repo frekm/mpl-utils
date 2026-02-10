@@ -6,7 +6,7 @@ from ._layout import (
 
 from .layout import (
     add_colorbar,
-    set_axes_size_inches,
+    set_axes_size,
     set_colorbar_pad_pts,
     set_colorbar_thickness_pts,
     align_axes_horizontally,
