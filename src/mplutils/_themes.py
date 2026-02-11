@@ -458,7 +458,7 @@ def textwithbox(
     return axes.text(x, y, text, **text_kwargs)
 
 
-def _set_lw_fs_lh(
+def _normalize_lw_fs_lh(
     linewidth: float | None,
     fontsize: float | str | None,
     legend_handlelength: float | None,
@@ -556,7 +556,9 @@ def dotted(
     .. plot:: _examples/themes/legend_dotted.py
         :include-source:
     """
-    lw_, fs_, lh_ = _set_lw_fs_lh(linewidth, fontsize, legend_handlelength, **aliases)
+    lw_, fs_, lh_ = _normalize_lw_fs_lh(
+        linewidth, fontsize, legend_handlelength, **aliases
+    )
 
     total_points = fs_ * lh_ / lw_
     n_dots = math.ceil(total_points / 2.0)
@@ -615,7 +617,9 @@ def dash_dotted(
     .. plot:: _examples/themes/legend_dash_dotted.py
         :include-source:
     """
-    lw_, fs_, lh_ = _set_lw_fs_lh(linewidth, fontsize, legend_handlelength, **aliases)
+    lw_, fs_, lh_ = _normalize_lw_fs_lh(
+        linewidth, fontsize, legend_handlelength, **aliases
+    )
 
     total_points = fs_ * lh_ / lw_
     spacewidth = (total_points - n_dashes) / (2.0 * n_dashes - 1 + n_dashes * ratio)
@@ -674,7 +678,9 @@ def dashed(
     .. plot:: _examples/themes/legend_dashed.py
         :include-source:
     """
-    lw_, fs_, lh_ = _set_lw_fs_lh(linewidth, fontsize, legend_handlelength, **aliases)
+    lw_, fs_, lh_ = _normalize_lw_fs_lh(
+        linewidth, fontsize, legend_handlelength, **aliases
+    )
 
     total_points = fs_ * lh_ / lw_
 
