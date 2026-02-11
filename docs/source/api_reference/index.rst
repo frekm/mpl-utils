@@ -10,9 +10,6 @@ API reference
 
     add_abc
     add_colorbar
-    add_column_pad_pts
-    add_margins_pts
-    add_row_pad_pts
     align_axes_vertically
     align_axes_horizontally
     centers_to_edges
@@ -21,17 +18,13 @@ API reference
     dotted
     dash_dotted
     dashed
+    FixedLayoutEngine
     for_pcolormesh
-    get_axes_size_inches
-    set_axes_size_inches
-    get_column_pad_pts
-    get_margins_pts
-    get_row_pad_pts
-    make_me_nice
     savefig
+    set_axes_size
+    set_colorbar_pad
+    set_colorbar_thickness
     set_color_cycle
     set_latex_backend
     square_polar_axes
     textwithbox
-    Area
-    Quadrants

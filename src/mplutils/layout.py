@@ -18,8 +18,8 @@ from .core import convert_to_inches
 
 
 def set_axes_size(
-    width_inch: float,
-    height_inch: float | None = None,
+    width: float,
+    height: float | None = None,
     *,
     aspect: Literal["auto"] | float = "auto",
     ax: None | Axes = None,
@@ -27,34 +27,32 @@ def set_axes_size(
         tuple[float, float]
         | Literal["auto", "C", "N", "NW", "W", "SW", "S", "SE", "E", "NE"]
     ) = "auto",
+    unit: Literal["mm", "pts", "inch"] = "inch",
 ) -> None:
     """
     Set physical size of `ax`.
 
     Parameters
     ----------
-    size_inch : float or (float, float)
-        New width and height of the graph-area of `ax` (that is, excluding
-        the axis labels, titles, etc).
+    width : float
+        Desired width of `ax` in units of `unit`.
 
-        float:
-            Change width and height to the same value, unless `aspect` is not "auto".
-            Then, change height to `size_inch` × `aspect`.
+    height : float, optional
+        Desired height of `ax` in units of `unit`.
 
-        (float, float)
-            (width, height).
+        If None, determine height according to `aspect`.
 
     aspect : "auto" or float, default "auto"
         Control the aspect ratio.
 
         "auto":
-            Determine aspect ratio using `size_inch`.
+            Determine aspect ratio using `width` and `height`. If `height` is None,
+            use an aspect ratio of 1.
 
         float:
             Set aspect ratio of `ax` to height / width.
 
-            If `size_inch` is a tuple and ``size_inch[1] / size_inch[0] != aspect``,
-            raises a ValueError.
+            If ``height / width != aspect``, raises a ValueError.
 
     ax : :class:`matplotlib.axes.Axes`, optional
         If None, change last active axes.
@@ -63,12 +61,17 @@ def set_axes_size(
         Anchor point of `ax`.
 
         If "auto", use :meth:`matplotlib.axes.Axes.get_anchor`.
+
+    unit : {``"mm"`` , ``"inch"`` , ``"pts"``}, default ``"pts"``
+        Units of `width` and `height`.
     """
     ax = ax or plt.gca()
     fig = ax.figure
     if not isinstance(fig, Figure):
         raise ValueError("ax must belong to a Figure (not SubFigure)")
-    width_inch, height_inch = normalize_width_height(width_inch, height_inch, aspect)
+    width, height = normalize_width_height(width, height, aspect)
+    width_inch = convert_to_inches(width, unit)
+    height_inch = convert_to_inches(height, unit)
     anchor_ = normalize_anchor(ax.get_anchor() if anchor == "auto" else anchor)
     ax.set_anchor(anchor_)
     set_axes_width_inch(fig, ax, width_inch, anchor_)
@@ -80,6 +83,20 @@ def set_colorbar_thickness(
     thickness: float,
     unit: Literal["mm", "pts", "inch"] = "pts",
 ) -> None:
+    """
+    Adjust thickness of a colorbar.
+
+    Parameters
+    ----------
+    colorbar : :class:`matplotlib.colorbar.Colorbar` or :class:`matplotlib.axes.Axes`
+        Colorbar or axes that contains the colorbar.
+
+    thickness : float
+        Desired thickness in units of `unit`.
+
+    unit : {``"mm"`` , ``"inch"`` , ``"pts"``}, default ``"pts"``
+        Unit of `thickness`.
+    """
     cax = colorbar if isinstance(colorbar, Axes) else colorbar.ax
     thickness_inch = convert_to_inches(thickness, unit)
     set_colorbar_thickness_inch(cax.figure, cax, thickness_inch)
@@ -88,6 +105,20 @@ def set_colorbar_thickness(
 def set_colorbar_pad(
     colorbar: Colorbar | Axes, pad: float, unit: Literal["mm", "pts", "inch"] = "pts"
 ) -> None:
+    """
+    Adjust padding between a colorbar and its parent axes.
+
+    Parameters
+    ----------
+    colorbar : :class:`matplotlib.colorbar.Colorbar` or :class:`matplotlib.axes.Axes`
+        Colorbar or axes that contains the colorbar.
+
+    pad : float
+        Desired padding in units of `unit`.
+
+    unit : {``"mm"`` , ``"inch"`` , ``"pts"``}, default ``"pts"``
+        Unit of `pad`.
+    """
     cax = colorbar if isinstance(colorbar, Axes) else colorbar.ax
     pad_inch = convert_to_inches(pad, unit)
     set_colorbar_pad_inch(cax.figure, cax, pad_inch)
