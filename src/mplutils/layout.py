@@ -1,4 +1,4 @@
-from typing import Literal, Final
+from typing import Literal
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -230,16 +230,18 @@ def add_colorbar(
     axis.set_ticks_position(location)  # type: ignore
     axis.set_label_position(location)  # type: ignore
 
-    if label is not None:
-        rotation = 270.0 if location == "right" else 0.0
-        kwargs = text_kwargs.copy()
-        kwargs.setdefault("rotation", rotation)
-        cbar.set_label(label, **kwargs)
-
     if thickness_pts is not None:
         set_colorbar_thickness_pts(cbar, thickness_pts)
     if pad_pts is not None:
         set_colorbar_pad_pts(cbar, pad_pts)
+
+    if label is not None:
+        kwargs = text_kwargs.copy()
+        if location == "right":
+            rotation = 270.0
+            kwargs.setdefault("verticalalignment", "baseline")
+            kwargs.setdefault("rotation", rotation)
+        cbar.set_label(label, **kwargs)
 
     return cbar
 
