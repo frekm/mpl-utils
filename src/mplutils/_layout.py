@@ -84,10 +84,8 @@ def normalize_anchor(anchor) -> tuple[float, float]:
         "NW": (0, 1.0),
         "W": (0, 0.5),
     }
-
     if anchor in coefs:
         anchor = coefs[anchor]
-
     return anchor
 
 
