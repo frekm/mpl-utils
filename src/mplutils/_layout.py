@@ -100,3 +100,74 @@ def normalize_width_height(
     elif aspect != "auto" and h / w != aspect:
         raise ValueError("width, height, and aspect-ratio contradict each other")
     return w, h
+
+
+def set_colorbar_thickness_inch(fig, cax: Axes, thickness_inch: float) -> None:
+    if not isinstance(fig, Figure):
+        raise ValueError("colorbar must be part of a figure")
+    cb_info = getattr(cax, "_colorbar_info", None)
+    if cb_info is None:
+        raise ValueError("could not retrieve colorbar info")
+    parents: list[Axes] = cb_info["parents"]
+    if len(parents) != 1:
+        raise ValueError("colorbar must belong to exactly one axes")
+    parent = parents[0]
+    location = cb_info["location"]
+    pos_parent = parent.get_position()
+    pos_cax = cax.get_position()
+    fw, fh = fig.get_size_inches()
+    cax.set_aspect("auto")
+    cax.set_box_aspect(None)
+    if location in ("left", "right"):
+        size = thickness_inch / fw
+        cb_info["fraction"] = size / pos_parent.width
+        cb_info["aspect"] = size / pos_cax.height
+        if location == "left":
+            cax.set_position((pos_cax.x1 - size, pos_cax.y0, size, pos_cax.height))
+        else:  # right
+            cax.set_position((pos_cax.x0, pos_cax.y0, size, pos_cax.height))
+    else:  # top bottom
+        size = thickness_inch / fh
+        cb_info["fraction"] = size / pos_parent.height
+        cb_info["aspect"] = pos_cax.width / size
+        if location == "top":
+            cax.set_position((pos_cax.x0, pos_cax.y0, pos_cax.width, size))
+        else:  # bottom
+            cax.set_position((pos_cax.x0, pos_cax.y1 - size, pos_cax.width, size))
+
+
+def set_colorbar_pad_inch(fig, cax, pad_inch: float) -> None:
+    if not isinstance(fig, Figure):
+        raise ValueError("colorbar must be part of a figure")
+    cb_info = getattr(cax, "_colorbar_info", None)
+    if cb_info is None:
+        raise ValueError("could not retrieve colorbar info")
+    parents: list[Axes] = cb_info["parents"]
+    if len(parents) != 1:
+        raise ValueError("colorbar must belong to exactly one axes")
+    parent = parents[0]
+    pos_parent = parent.get_position()
+    location = cb_info["location"]
+    pos_cax = cax.get_position()
+    fw, fh = fig.get_size_inches()
+    if location in ("left", "right"):
+        gap = pad_inch / fw
+        if location == "left":
+            x0 = pos_parent.x0 - gap - pos_cax.width
+            pos = Bbox.from_bounds(x0, pos_cax.y0, pos_cax.width, pos_cax.height)
+            cax.set_position(pos)
+        else:  # right
+            x0 = pos_parent.x1 + gap
+            pos = Bbox.from_bounds(x0, pos_cax.y0, pos_cax.width, pos_cax.height)
+            cax.set_position(pos)
+    else:  # top bottom
+        gap = pad_inch / fh
+        if location == "top":
+            y0 = pos_parent.y1 + gap
+            pos = Bbox.from_bounds(pos_cax.x0, y0, pos_cax.width, pos_cax.height)
+            cax.set_position(pos)
+        else:  # bottom
+            y0 = pos_parent.y0 - gap - pos_cax.height
+            pos = Bbox.from_bounds(pos_cax.x0, y0, pos_cax.width, pos_cax.height)
+            cax.set_position(pos)
+    cb_info["pad"] = gap

@@ -8,13 +8,14 @@ from numpy.typing import NDArray, ArrayLike
 import logging
 from typing import cast, TypedDict, Unpack
 
-from . import utils
+from . import core
+from . import errors
 
 
 logger = logging.getLogger(__name__)
 
 
-def normalize_margins(arg: ArrayLike) -> utils.Quadrants:
+def normalize_margins(arg: ArrayLike) -> core.Quadrants:
     """
     Processes arguments that represent margins of a figure.
 
@@ -32,15 +33,15 @@ def normalize_margins(arg: ArrayLike) -> utils.Quadrants:
     """
     arg = np.asarray(arg)
     if not arg.ndim > 0:
-        rtn = utils.Quadrants(arg, arg, arg, arg)
+        rtn = core.Quadrants(arg, arg, arg, arg)
     elif len(arg) == 1:
-        rtn = utils.Quadrants(arg[0], arg[0], arg[0], arg[0])
+        rtn = core.Quadrants(arg[0], arg[0], arg[0], arg[0])
     elif len(arg) == 2:
-        rtn = utils.Quadrants(arg[0], arg[1], arg[0], arg[1])
+        rtn = core.Quadrants(arg[0], arg[1], arg[0], arg[1])
     elif len(arg) == 3:
-        rtn = utils.Quadrants(arg[0], arg[1], arg[2], arg[1])
+        rtn = core.Quadrants(arg[0], arg[1], arg[2], arg[1])
     elif len(arg) == 4:
-        rtn = utils.Quadrants(*arg)
+        rtn = core.Quadrants(*arg)
     else:
         raise ValueError(f"{arg=} has invalid length")
     return rtn
@@ -108,11 +109,11 @@ class ParamsDict(TypedDict, total=True):
 def normalize_layout_params(
     params: ParamsDict, nrows: int, ncols: int
 ) -> NormParamsDict:
-    mpads_inch = normalize_margins(params["margin_pads_pts"]) / utils.PTS_PER_INCH
+    mpads_inch = normalize_margins(params["margin_pads_pts"]) / core.PTS_PER_INCH
     mpads_use_bbox = normalize_margins(params["margin_pads_ignore_labels"])
-    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / utils.PTS_PER_INCH
+    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / core.PTS_PER_INCH
     hpads_use_bbox = normalize_hv_pads(params["col_pads_ignore_labels"], ncols)
-    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / utils.PTS_PER_INCH
+    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / core.PTS_PER_INCH
     vpads_use_bbox = normalize_hv_pads(params["row_pads_ignore_labels"], nrows)
 
     nparams: NormParamsDict = {
@@ -127,7 +128,9 @@ def normalize_layout_params(
 
 def validate_figure(fig):
     if isinstance(fig, SubFigure):
-        raise utils.InvalidFigureError("FixedLayoutEngine cannot handle nested figures")
+        raise errors.InvalidFigureError(
+            "FixedLayoutEngine cannot handle nested figures"
+        )
     gs = None
     for ax in fig._localaxes:
         if not ax.get_subplotspec():
@@ -136,14 +139,14 @@ def validate_figure(fig):
         gs_ = ss.get_gridspec()
         if ss.num1 != ss.num2:
             msg = "Cannot handle axes spanning multiple cells in a gridspec"
-            raise utils.InvalidFigureError(msg)
+            raise errors.InvalidFigureError(msg)
         if gs is None:
             gs = gs_
         elif gs_ != gs:
             msg = "FixedLayoutEngine cannot handle multiple gridspecs in figure"
-            raise utils.InvalidFigureError(msg)
+            raise errors.InvalidFigureError(msg)
     if gs is None:
-        raise utils.InvalidFigureError("Axes in figure need to be part of a gridspec")
+        raise errors.InvalidFigureError("Axes in figure need to be part of a gridspec")
 
 
 def get_axes_for_layout(axes: list[Axes]) -> list[Axes]:
@@ -166,7 +169,7 @@ def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
     dpi = fig.dpi
     tbbox_ax = ax.get_tightbbox(renderer, for_layout_only=False)
 
-    xy_candidates = utils.Quadrants(
+    xy_candidates = core.Quadrants(
         [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
     )
 
@@ -201,21 +204,21 @@ def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
     return rtn
 
 
-def get_bboxes_inch_grid(fig, axs) -> utils.Array[Bbox]:
+def get_bboxes_inch_grid(fig, axs) -> core.Array[Bbox]:
     bboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         bboxes_inch[i] = get_ax_bbox_inch(fig, ax)
     return bboxes_inch  # type: ignore
 
 
-def get_tbboxes_inch_grid(fig, axs, renderer) -> utils.Array[Bbox]:
+def get_tbboxes_inch_grid(fig, axs, renderer) -> core.Array[Bbox]:
     tbboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         tbboxes_inch[i] = get_ax_tbbox_inch(fig, ax, renderer)
     return tbboxes_inch  # type: ignore
 
 
-def get_axes_grid(axes: list[Axes]) -> utils.Array[Axes]:
+def get_axes_grid(axes: list[Axes]) -> core.Array[Axes]:
     subplotspecs: dict[Axes, SubplotSpec] = {}
     first = True
     for ax in axes:
@@ -312,8 +315,8 @@ def add_vspace_inch(
     fig: Figure,
     idx: int,
     vspace: float,
-    axes: utils.Array[Axes],
-    axes_bboxes_inch: utils.Array[Bbox],
+    axes: core.Array[Axes],
+    axes_bboxes_inch: core.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):
@@ -334,8 +337,8 @@ def add_hspace_inch(
     fig: Figure,
     idx: int,
     hspace: float,
-    axes: utils.Array[Axes],
-    axes_bboxes_inch: utils.Array[Bbox],
+    axes: core.Array[Axes],
+    axes_bboxes_inch: core.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):
@@ -386,4 +389,4 @@ def do_fixed_layout(fig: Figure, **params: Unpack[ParamsDict]):
     fw = fig.get_size_inches()[0]
     if fw > nparams["max_figwidth"]:
         msg = f"figure size ({fw}in) larger than max_figwidth ({nparams['max_figwidth']}in)"
-        raise utils.InvalidFigureError(msg)
+        raise errors.InvalidFigureError(msg)

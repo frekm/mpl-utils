@@ -1,20 +1,33 @@
 from .layout import (
-    add_colorbar,
     set_axes_size,
-    set_colorbar_pad_pts,
-    set_colorbar_thickness_pts,
+    set_colorbar_pad,
+    set_colorbar_thickness,
     align_axes_horizontally,
     align_axes_vertically,
 )
 
-from ._themes import (
-    GOLDENRATIO,
-    figwidth,
-    colors,
-    colormaps,
-    okabe_ito,
-    okabe_ito_accent,
-    okabe_ito_muted,
+from .constants import (
+    FIG_WIDTHS,
+    COLORS,
+    OKABE_ITO,
+    OKABE_ITO_ACCENT,
+    OKABE_ITO_MUTED,
+    MM_PER_INCH,
+    PTS_PER_INCH,
+    PTS_PER_MM,
+)
+
+from .errors import (
+    InvalidFigureError,
+    AliasError,
+)
+
+from .utils import (
+    add_colorbar,
+    savefig,
+    for_pcolormesh,
+    centers_to_edges,
+    convert_to_steps,
     set_color_cycle,
     set_latex_backend,
     crop_colormap,
@@ -26,18 +39,6 @@ from ._themes import (
     square_polar_axes,
 )
 
-from .utils import (
-    InvalidFigureError,
-    Quadrants,
-    MM_PER_INCH,
-    PTS_PER_MM,
-    PTS_PER_INCH,
-    savefig,
-    for_pcolormesh,
-    centers_to_edges,
-    convert_to_steps,
-)
+from .layout_engine import FixedLayoutEngine
 
 from ._version import __version__
-
-from .layout_engine import FixedLayoutEngine
