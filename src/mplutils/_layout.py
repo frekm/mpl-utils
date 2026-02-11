@@ -1,23 +1,7 @@
-import io
-from typing import Optional, TypeVar, Literal, Any, NamedTuple, Type, cast, Final
-import matplotlib.pyplot as plt
+from typing import Literal
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure, SubFigure
-from matplotlib.backend_bases import RendererBase
-from matplotlib.gridspec import SubplotSpec
-from matplotlib.cm import ScalarMappable
-from matplotlib.colorbar import Colorbar
+from matplotlib.figure import Figure
 from matplotlib.transforms import Bbox
-import matplotlib.transforms as mtrans
-import itertools
-import numpy as np
-from numpy.typing import ArrayLike, NDArray
-from dataclasses import dataclass
-
-
-from ._misc import Array
-
-T = TypeVar("T")
 
 
 def update_colorbar(cax: Axes, parent_bbox_old: Bbox, parent_bbox_new: Bbox) -> None:
