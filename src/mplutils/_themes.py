@@ -7,13 +7,13 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 import matplotlib.patches as patches
-
 import cycler
-import math
 
 from typing import Literal, Union, NamedTuple
+import math
 
-from . import _layout
+from . import utils
+from ._fixed_layout import get_axes_for_layout, get_axes_grid, get_bboxes_inch_grid
 
 GOLDENRATIO = 1.0 + np.sqrt(5.0) / 2.0  # 1.618
 
@@ -38,8 +38,8 @@ figwidth = FigureWdith(
     science_1col=2.25,
     science_2col=4.75,
     science_3col=7.25,
-    a4=210.0 / _layout.MM_PER_INCH,
-    a5=148.0 / _layout.MM_PER_INCH,
+    a4=210.0 / utils.MM_PER_INCH,
+    a5=148.0 / utils.MM_PER_INCH,
 )
 
 
@@ -776,9 +776,8 @@ def add_abc(
         :include-source:
 
     """
-
     fig = fig or plt.gcf()
-    axs = _layout._get_sorted_axes_grid(fig)
+    axs = get_axes_grid(get_axes_for_layout(fig.axes))
     nrows, ncols = axs.shape
 
     valid_anchors = ["top left", "top right", "bottom left", "bottom right"]
@@ -789,7 +788,7 @@ def add_abc(
     leftright = anchor.split(" ")[1]
 
     # process offsets
-    xoffsets_inch = np.asarray(xoffset_pts) / _layout.PTS_PER_INCH
+    xoffsets_inch = np.asarray(xoffset_pts) / utils.PTS_PER_INCH
     if xoffsets_inch.ndim == 0:
         xoffsets_inch = np.full(axs.shape, xoffsets_inch)
     elif xoffsets_inch.ndim == 1:
@@ -797,7 +796,7 @@ def add_abc(
     if xoffsets_inch.shape != (nrows, ncols):
         msg = f"{xoffset_pts=} but must be either scalar or of shapes ({ncols},) or ({nrows}, {ncols})"
         raise ValueError(msg)
-    yoffsets_inch = np.asarray(yoffset_pts) / _layout.PTS_PER_INCH
+    yoffsets_inch = np.asarray(yoffset_pts) / utils.PTS_PER_INCH
     if yoffsets_inch.ndim == 0:
         yoffsets_inch = np.full(axs.shape, yoffsets_inch)
     elif yoffsets_inch.ndim == 1:
@@ -809,7 +808,7 @@ def add_abc(
     if labels is not None:
         labels_ = labels.split(labels_sep)
     out: dict[Axes, Text] = {}
-    bboxes_inch = _layout._get_bboxes_inch_grid(axs)
+    bboxes_inch = get_bboxes_inch_grid(fig, axs)
     for (row, col), bbox in np.ndenumerate(bboxes_inch):
         if leftright == "left":
             x = xoffsets_inch[row, col] / bbox.width
