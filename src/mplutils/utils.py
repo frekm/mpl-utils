@@ -1,4 +1,4 @@
-from typing import NamedTuple, Any, Type, TypeVar, Generic, Final, Sequence, Literal
+import typing
 import inspect
 import os
 import pathlib
@@ -9,14 +9,14 @@ from numpy.typing import ArrayLike, NDArray
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-DType = TypeVar("DType")
+DType = typing.TypeVar("DType")
 
-MM_PER_INCH: Final = 25.4
-PTS_PER_INCH: Final = 72.0
-PTS_PER_MM: Final = PTS_PER_INCH / MM_PER_INCH
+MM_PER_INCH: typing.Final = 25.4
+PTS_PER_INCH: typing.Final = 72.0
+PTS_PER_MM: typing.Final = PTS_PER_INCH / MM_PER_INCH
 
 
-class Array(np.ndarray, Generic[DType]):
+class Array(np.ndarray, typing.Generic[DType]):
     def __getitem__(self, key) -> DType:
         return super().__getitem__(key)  # type: ignore
 
@@ -29,7 +29,7 @@ class InvalidFigureError(Exception):
         return self.message
 
 
-class Quadrants(NamedTuple):
+class Quadrants(typing.NamedTuple):
     """
     Tuple representing the top/right/bottom/left quadrants of a figure.
 
@@ -44,34 +44,34 @@ class Quadrants(NamedTuple):
         Alias for top/right/bottom/left.
     """
 
-    top: Any
-    right: Any
-    bottom: Any
-    left: Any
+    top: typing.Any
+    right: typing.Any
+    bottom: typing.Any
+    left: typing.Any
 
     @property
-    def t(self) -> Any:
+    def t(self) -> typing.Any:
         """
         Alias for top.
         """
         return self.top
 
     @property
-    def r(self) -> Any:
+    def r(self) -> typing.Any:
         """
         Alias for right.
         """
         return self.right
 
     @property
-    def b(self) -> Any:
+    def b(self) -> typing.Any:
         """
         Alias for bottom.
         """
         return self.bottom
 
     @property
-    def l(self) -> Any:
+    def l(self) -> typing.Any:
         """
         Alias for left.
         """
@@ -120,7 +120,7 @@ class Quadrants(NamedTuple):
     def __rfloordiv__(self, val) -> "Quadrants":
         return self // val
 
-    def astype(self, t: Type) -> "Quadrants":
+    def astype(self, t: typing.Type) -> "Quadrants":
         """
         Convert elements to type `t`
 
@@ -200,7 +200,7 @@ def centers_to_edges(
 
 def savefig(
     fname: None | str = None,
-    ftype: None | str | Sequence[str] = None,
+    ftype: None | str | typing.Sequence[str] = None,
     fig: None | Figure = None,
     **savefig_kwargs,
 ) -> None:
@@ -314,7 +314,7 @@ def for_pcolormesh(
     ycenters: ArrayLike,
     z: ArrayLike,
     *,
-    iteration_order: Literal["x_first", "y_first"] = "x_first",
+    iteration_order: typing.Literal["x_first", "y_first"] = "x_first",
     xmin: float | None = None,
     xmax: float | None = None,
     ymin: float | None = None,
@@ -393,7 +393,7 @@ def for_pcolormesh(
 def convert_to_steps(
     x: ArrayLike,
     y: ArrayLike,
-    start_at: float | Literal["auto"] = 0.0,
+    start_at: float | typing.Literal["auto"] = 0.0,
     xlim_lower: float | None = None,
     xlim_upper: float | None = None,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
