@@ -727,7 +727,7 @@ def add_abc(
         Specify anchor point of the labels (offsets are relative to this).
         Refers to the corner of the graph-area of the axes.
 
-    labels : str, optional
+    labels : str, optional, default ``"a;b;c;d; ... ;y;z",``
         A string of labels, where each label is seperated by `labels_sep`.
 
         If ``None``, use label of the respective axes
@@ -790,8 +790,7 @@ def add_abc(
     if anchor not in valid_anchors:
         err_msg = f"{anchor=}, but it needs to be one of {valid_anchors}"
         raise ValueError(err_msg)
-    topbottom = anchor.split(" ")[0]
-    leftright = anchor.split(" ")[1]
+    topbottom, leftright = anchor.split(" ")
 
     # process offsets
     xoffsets_inch = np.asarray(xoffset_pts) / utils.PTS_PER_INCH
@@ -816,15 +815,10 @@ def add_abc(
     out: dict[Axes, Text] = {}
     bboxes_inch = get_bboxes_inch_grid(fig, axs)
     for (row, col), bbox in np.ndenumerate(bboxes_inch):
-        if leftright == "left":
-            x = xoffsets_inch[row, col] / bbox.width
-        else:
-            x = 1.0 + xoffsets_inch[row, col] / bbox.width
-        if topbottom == "top":
-            y = 1.0 + yoffsets_inch[row, col] / bbox.height
-        else:
-            y = yoffsets_inch[row, col] / bbox.height
-
+        xloc = 0.0 if leftright == "left" else 1.0
+        yloc = 1.0 if topbottom == "top" else 0.0
+        x = xloc + xoffsets_inch[row, col] / bbox.width
+        y = yloc + yoffsets_inch[row, col] / bbox.height
         if labels is None:
             text = pre + str(axs[row, col].get_label()) + post
         else:
