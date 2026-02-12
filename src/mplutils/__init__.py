@@ -35,6 +35,8 @@ from .utils import (
     square_polar_axes,
 )
 
+from . import constants as constants
+
 from .layout_engine import FixedLayoutEngine
 
 from ._version import __version__
