@@ -316,7 +316,7 @@ def convert_to_steps(
     Examples
     --------
 
-    .. plot:: _examples/misc/convert_to_steps.py
+    .. plot:: _examples/convert_to_steps.py
         :include-source:
     """
     y = np.asarray(y)
@@ -498,7 +498,7 @@ def crop_colormap(
     Examples
     --------
 
-    .. plot:: _examples/themes/crop_colormap.py
+    .. plot:: _examples/crop_colormap.py
         :include-source:
     """
     if x < 0.0 or x > 1.0:
@@ -665,7 +665,7 @@ def dotted(
         plt.plot([0., 1.], linestyle=mplu.dotted())
         plt.legend()
 
-    .. plot:: _examples/themes/legend_dotted.py
+    .. plot:: _examples/legend_dotted.py
         :include-source:
     """
     lw_, fs_, lh_ = normalize_lw_fs_lh(
@@ -726,7 +726,7 @@ def dash_dotted(
 
     Examples
     --------
-    .. plot:: _examples/themes/legend_dash_dotted.py
+    .. plot:: _examples/legend_dash_dotted.py
         :include-source:
     """
     lw_, fs_, lh_ = normalize_lw_fs_lh(
@@ -787,7 +787,7 @@ def dashed(
 
     Examples
     --------
-    .. plot:: _examples/themes/legend_dashed.py
+    .. plot:: _examples/legend_dashed.py
         :include-source:
     """
     lw_, fs_, lh_ = normalize_lw_fs_lh(
@@ -884,10 +884,10 @@ def add_abc(
     Examples
     --------
 
-    .. plot:: _examples/themes/add_abc0.py
+    .. plot:: _examples/add_abc0.py
         :include-source:
 
-    .. plot:: _examples/themes/add_abc1.py
+    .. plot:: _examples/add_abc1.py
         :include-source:
 
     """
@@ -953,7 +953,7 @@ def square_polar_axes(ax: maxes.Axes | None = None, zorder: float = 0.98) -> Non
     Examples
     --------
 
-    .. plot:: _examples/themes/square_polar_axes.py
+    .. plot:: _examples/square_polar_axes.py
         :include-source:
 
     """
@@ -1062,7 +1062,7 @@ def add_colorbar(
     Examples
     --------
 
-    .. plot:: _examples/colormaps/add_colorbar.py
+    .. plot:: _examples/add_colorbar.py
         :include-source:
 
     """
