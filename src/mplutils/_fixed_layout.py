@@ -266,7 +266,7 @@ def get_hspaces_inch(
         hpads_inch[i] = left - right
 
     last_bboxes = select_bboxes(use_bbox[-1], bboxes, tbboxes)[:, -1]
-    hpads_inch[-1] = figwidth - np.amin([t.x1 for t in last_bboxes])
+    hpads_inch[-1] = figwidth - np.amax([t.x1 for t in last_bboxes])
 
     return hpads_inch
 
