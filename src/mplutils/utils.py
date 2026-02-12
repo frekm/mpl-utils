@@ -843,7 +843,7 @@ def add_abc(
         A string of labels, where each label is seperated by `labels_sep`.
 
         If ``None``, use label of the respective axes
-        (i.e., ``ax.get_label()``).
+        (i.e., :meth:`ax.get_label() <matplotlib.artist.Artist.get_label>`).
 
     labels_sep : str, default ``";"``
         Separator used for `labels`.
