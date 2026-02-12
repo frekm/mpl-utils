@@ -23,6 +23,31 @@ ColorsLike = typing.Literal[
 
 @dataclasses.dataclass(frozen=True)
 class Colors:
+    """
+    Various colors.
+
+    Instantiate, then use:
+
+        >>> import mplutils as mplu
+        >>> colors = mplu.Colors()
+        >>> colors
+        Colors(red='#AE1117', teal='#008081', blue='#376EB5', pink='#D4B9DA', orange='#ED7800', yellow='#FCE205', lemon='#EFFD5F', corn='#E4CD05', purple='#CA8DFD', darkpurple='#9300FF', lightgreen='#3BB143', green='#007F00', darkgreen='#0B6623', grey='#9D9D9C', black='#000000', white='#FFFFFF')
+        >>> colors.red
+        '#AE1117'
+        >>> colors[0]
+        '#AE1117'
+        >>> colors[0:3]
+        ('#AE1117', '#008081', '#376EB5')
+
+    .. plot:: _examples/colors.py
+
+    See also
+    --------
+    OkabeItoPalette
+    OkabeItoMutedPalette
+    OkabeItoAccentPalette
+    """
+
     red: typing.Literal["#AE1117"] = "#AE1117"
     teal: typing.Literal["#008081"] = "#008081"
     blue: typing.Literal["#376EB5"] = "#376EB5"
@@ -85,55 +110,42 @@ class Colors:
             | slice
         ),
     ) -> ColorsLike | tuple[str, ...] | str:
-        items = (
-            self.red,
-            self.teal,
-            self.blue,
-            self.pink,
-            self.orange,
-            self.yellow,
-            self.lemon,
-            self.corn,
-            self.purple,
-            self.darkpurple,
-            self.lightgreen,
-            self.green,
-            self.darkgreen,
-            self.grey,
-            self.black,
-            self.white,
-        )
-        return items[i]
+        values = tuple(vars(self).values())
+        return values[i]
 
     def __len__(self) -> int:
-        return 16
+        return len(vars(self).values())
 
-    def __iter__(
-        self,
-    ) -> typing.Iterator[ColorsLike]:
-        items = (
-            self.red,
-            self.teal,
-            self.blue,
-            self.pink,
-            self.orange,
-            self.yellow,
-            self.lemon,
-            self.corn,
-            self.purple,
-            self.darkpurple,
-            self.lightgreen,
-            self.green,
-            self.darkgreen,
-            self.grey,
-            self.black,
-            self.white,
-        )
-        return iter(items)
+    def __iter__(self) -> typing.Iterator[ColorsLike]:
+        return iter(vars(self).values())
 
 
 @dataclasses.dataclass(frozen=True)
 class OkabeItoPalette:
+    """
+    Okabe and Ito color palette.
+
+    Instantiate, then use:
+
+        >>> palette = mplu.OkabeItoPalette()
+        >>> palette
+        OkabeItoPalette(blue='#56b4e9', orange='#e69f00', green='#009e73', yellow='#f0e442', darkblue='#0072b2', darkorange='#d55e00', violet='#cc79a7')
+        >>> palette.blue
+        '#56b4e9'
+        >>> palette[0]
+        '#56b4e9'
+        >>> palette[0:3]
+        ('#56b4e9', '#e69f00', '#009e73')
+
+    .. plot:: _examples/okabe_ito.py
+
+    See also
+    --------
+    Colors
+    OkabeItoMutedPalette
+    OkabeItoAccentPalette
+    """
+
     blue: typing.Literal["#56b4e9"] = "#56b4e9"
     orange: typing.Literal["#e69f00"] = "#e69f00"
     green: typing.Literal["#009e73"] = "#009e73"
@@ -174,47 +186,44 @@ class OkabeItoPalette:
         | tuple[str, ...]
         | str
     ):
-        items = (
-            self.blue,
-            self.orange,
-            self.green,
-            self.yellow,
-            self.darkblue,
-            self.darkorange,
-            self.violet,
-        )
-        return items[i]
+        return tuple(vars(self).values())[i]
 
     def __len__(self) -> int:
-        return 7
+        return len(vars(self).values())
 
-    def __iter__(
-        self,
-    ) -> typing.Iterator[
-        typing.Literal[
-            "#56b4e9",
-            "#e69f00",
-            "#009e73",
-            "#f0e442",
-            "#0072b2",
-            "#d55e00",
-            "#cc79a7",
-        ]
-    ]:
-        items = (
-            self.blue,
-            self.orange,
-            self.green,
-            self.yellow,
-            self.darkblue,
-            self.darkorange,
-            self.violet,
-        )
-        return iter(items)
+    def __iter__(self) -> typing.Iterator[tuple[str, ...]]:
+        return iter(vars(self).values())
 
 
 @dataclasses.dataclass(frozen=True)
 class OkabeItoMutedPalette:
+    """
+    Muted Okabe and Ito color palette.
+
+    Useful together with :class:`.OkabeItoAccentPalette`.
+
+    Instantiate, then use:
+
+    >>> palette = mplu.OkabeItoMutedPalette()
+    >>> palette[0]
+    '#D9CBBE'
+    >>> palette
+    OkabeItoMutedPalette(sandstone='#D9CBBE', mist='#C3CDD6', mauve='#CAB9C1', ivory='#F0EDD6')
+    >>> palette[0:3]
+    ('#D9CBBE', '#C3CDD6', '#CAB9C1')
+    >>> palette.sandstone
+    '#D9CBBE
+
+    .. plot:: _examples/okabe_ito_muted.py
+
+    See also
+    --------
+    Colors
+    OkabeItoPalette
+    OkabeItoAccentPalette
+    set_color_cycle
+    """
+
     sandstone: typing.Literal["#D9CBBE"] = "#D9CBBE"
     mist: typing.Literal["#C3CDD6"] = "#C3CDD6"
     mauve: typing.Literal["#CAB9C1"] = "#CAB9C1"
@@ -240,11 +249,10 @@ class OkabeItoMutedPalette:
         | tuple[str, ...]
         | str
     ):
-        items = (self.sandstone, self.mist, self.mauve, self.ivory)
-        return items[i]
+        return tuple(vars(self).values())[i]
 
     def __len__(self) -> int:
-        return 4
+        return len(vars(self).values())
 
     def __iter__(
         self,
@@ -256,12 +264,39 @@ class OkabeItoMutedPalette:
             "#F0EDD6",
         ]
     ]:
-        items = (self.sandstone, self.mist, self.mauve, self.ivory)
-        return iter(items)
+        return iter(vars(self).values())
 
 
 @dataclasses.dataclass(frozen=True)
 class OkabeItoAccentPalette:
+    """
+    Accented Okabe and Ito color palette.
+
+    Useful together with :class:`.OkabeItoMutedPalette`.
+
+    Instantiate, then use:
+
+        >>> palette = mplu.OkabeItoAccentPalette()
+        >>> palette
+        OkabeItoAccentPalette(blue='#044F7E', red='#954000', green='#026D4E')
+        OkabeItoAccentPalette(blue='#044F7E', red='#954000', green='#026D4E')
+        >>> palette.blue
+        '#044F7E'
+        >>> palette[0]
+        '#044F7E'
+        >>> palette[0:3]
+        ('#044F7E', '#954000', '#026D4E')
+
+    .. plot:: _examples/okabe_ito_accent.py
+
+    See also
+    --------
+    Colors
+    OkabeItoPalette
+    OkabeItoMutedPalette
+    set_color_cycle
+    """
+
     blue: typing.Literal["#044F7E"] = "#044F7E"
     red: typing.Literal["#954000"] = "#954000"
     green: typing.Literal["#026D4E"] = "#026D4E"
@@ -280,14 +315,12 @@ class OkabeItoAccentPalette:
     def __getitem__(
         self, i: typing.Literal[0, 1, 2, 3] | slice | int
     ) -> typing.Literal["#044F7E", "#954000", "#026D4E"] | tuple[str, ...] | str:
-        items = (self.blue, self.red, self.green)
-        return items[i]
+        return tuple(vars(self).values())[i]
 
     def __len__(self) -> int:
-        return 3
+        return len(vars(self).values())
 
     def __iter__(
         self,
     ) -> typing.Iterator[typing.Literal["#044F7E", "#954000", "#026D4E"]]:
-        items = (self.blue, self.red, self.green)
-        return iter(items)
+        return iter(vars(self).values())

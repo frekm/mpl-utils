@@ -345,7 +345,7 @@ def set_color_cycle(
     *colors : str, optional
         Colors seperated by comma and given in HEX-codes.
 
-        If no colors are provided, defaults to Okabe and Ito palette
+        If no colors are provided, defaults to :class:`.OkabeItoPalette`
         (see `here <https://jfly.uni-koeln.de/color/>`__ for a motivation).
 
         Alternatively, the name of a colormap can be specified and the color
@@ -383,6 +383,12 @@ def set_color_cycle(
         # Set color cycle to a diverging colormap that passes through zero
         # with the second color
         set_color_cylce("RdBu", nsteps=3)
+
+    See also
+    --------
+    OkabeItoPalette
+    OkabeItoMutedPalette
+    OkabeItoAccentPalette
     """
     # format colors appropriately
     if not colors:

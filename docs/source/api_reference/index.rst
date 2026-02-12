@@ -13,6 +13,7 @@ API reference
     align_axes_vertically
     align_axes_horizontally
     centers_to_edges
+    Colors
     convert_to_steps
     crop_colormap
     dotted
@@ -20,6 +21,9 @@ API reference
     dashed
     FixedLayoutEngine
     for_pcolormesh
+    OkabeItoPalette
+    OkabeItoAccentPalette
+    OkabeItoMutedPalette
     savefig
     set_axes_size
     set_colorbar_pad
