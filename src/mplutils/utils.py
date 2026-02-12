@@ -17,7 +17,8 @@ import matplotlib.patches as mpatches
 import numpy as np
 import numpy.typing as npt
 
-from .constants import OKABE_ITO, PTS_PER_INCH
+from .constants import PTS_PER_INCH
+from .colors import OkabeItoPalette
 from .core import FontsizeLike, convert_to_inches
 from ._fixed_layout import get_axes_for_layout, get_axes_grid, get_bboxes_inch_grid
 from ._layout import set_colorbar_thickness_inch, set_colorbar_pad_inch
@@ -344,7 +345,7 @@ def set_color_cycle(
     *colors : str, optional
         Colors seperated by comma and given in HEX-codes.
 
-        If now colors are provided, defaults to Okabe and Ito palette
+        If no colors are provided, defaults to Okabe and Ito palette
         (see `here <https://jfly.uni-koeln.de/color/>`__ for a motivation).
 
         Alternatively, the name of a colormap can be specified and the color
@@ -356,13 +357,13 @@ def set_color_cycle(
     nsteps : int, default 7
         Define how many different colors will be set in the color cycler.
 
-        Irrelevant if a specific colors are passed in ``colors``.
+        Irrelevant if specific colors are passed in `colors`.
 
     fig : :class:`matplotlib.figure.Figure`, optional
         Optionally, provide a figure. The color cycle of all axes of that figure
         will be updated.
 
-        If ``None``, check if a figure already exists. If so, update the color
+        If None, check if a figure already exists. If so, update the color
         cycle of all axes of the last active figure.
 
     Examples
@@ -391,7 +392,7 @@ def set_color_cycle(
                 f"be used, but {nsteps=}"
             )
             raise ValueError(msg)
-        colors = OKABE_ITO[:nsteps]
+        colors = OkabeItoPalette()[:nsteps]
     if len(colors) == 1 and colors[0] in plt.colormaps():
         cmap_ = plt.get_cmap(colors[0])
         colors = tuple([mcolors.to_hex(cmap_(i / (nsteps - 1))) for i in range(nsteps)])
@@ -889,9 +890,6 @@ def add_abc(
     .. plot:: _examples/themes/add_abc1.py
         :include-source:
 
-    .. plot:: _examples/themes/add_abc2.py
-        :include-source:
-
     """
     fig = fig or plt.gcf()
     axs = get_axes_grid(get_axes_for_layout(fig.axes))
@@ -1064,10 +1062,7 @@ def add_colorbar(
     Examples
     --------
 
-    .. plot:: _examples/layout/add_colorbar0.py
-        :include-source:
-
-    .. plot:: _examples/layout/add_colorbar1.py
+    .. plot:: _examples/colormaps/add_colorbar.py
         :include-source:
 
     """

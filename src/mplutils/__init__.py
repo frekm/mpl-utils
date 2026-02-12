@@ -6,15 +6,11 @@ from .layout import (
     align_axes_vertically,
 )
 
-from .constants import (
-    FIG_WIDTHS,
-    COLORS,
-    OKABE_ITO,
-    OKABE_ITO_ACCENT,
-    OKABE_ITO_MUTED,
-    MM_PER_INCH,
-    PTS_PER_INCH,
-    PTS_PER_MM,
+from .colors import (
+    Colors,
+    OkabeItoPalette,
+    OkabeItoMutedPalette,
+    OkabeItoAccentPalette,
 )
 
 from .errors import (

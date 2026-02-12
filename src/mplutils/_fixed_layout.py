@@ -10,6 +10,7 @@ from typing import cast, TypedDict, Unpack
 
 from . import core
 from . import errors
+from .constants import PTS_PER_INCH
 
 
 logger = logging.getLogger(__name__)
@@ -109,11 +110,11 @@ class ParamsDict(TypedDict, total=True):
 def normalize_layout_params(
     params: ParamsDict, nrows: int, ncols: int
 ) -> NormParamsDict:
-    mpads_inch = normalize_margins(params["margin_pads_pts"]) / core.PTS_PER_INCH
+    mpads_inch = normalize_margins(params["margin_pads_pts"]) / PTS_PER_INCH
     mpads_use_bbox = normalize_margins(params["margin_pads_ignore_labels"])
-    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / core.PTS_PER_INCH
+    hpads_inch = normalize_hv_pads(params["col_pads_pts"], ncols) / PTS_PER_INCH
     hpads_use_bbox = normalize_hv_pads(params["col_pads_ignore_labels"], ncols)
-    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / core.PTS_PER_INCH
+    vpads_inch = normalize_hv_pads(params["row_pads_pts"], nrows) / PTS_PER_INCH
     vpads_use_bbox = normalize_hv_pads(params["row_pads_ignore_labels"], nrows)
 
     nparams: NormParamsDict = {
