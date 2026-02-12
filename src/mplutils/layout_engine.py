@@ -5,6 +5,111 @@ from ._fixed_layout import do_fixed_layout, validate_figure, ParamsDict
 
 
 class FixedLayoutEngine(LayoutEngine):
+    """
+    Custom matplotlib :class:`LayoutEngine <matplotlib.layout_engine.LayoutEngine>`.
+
+    This layout engine adjust the size of the figure while fixing the
+    size of the axes.
+
+    **Constrains:**
+
+    - Fancy gridspecs are not supported. For example, an axes cannot span multiple
+      cells in the grid.
+    - The layout needs to be set before any colorbars are added.
+    - :meth:`Suptitles <matplotlib.pyplot.suptitle>` of figures are currently not
+      seen by the engine.
+    - Colorbars should be added by :meth:`matplotlib.figure.Figure.colorbar` or
+      :func:`.add_colorbar`.
+    - This layout is not intended for interactive backends (such as used by
+      :func:`matplotlib.pyplot.show`). Using this with an interactive backend
+      will eventually break the layout.
+
+    .. note::
+
+        Use :func:`.set_axes_size`, :func:`.set_colorbar_thickness`, and
+        :func:`.set_colorbar_pad` to control the physical size of axes and colorbars.
+
+    Parameters
+    ----------
+    margin_pads_pts : float or (float, ...), default 3.0
+        Add padding around the subplot area.
+
+        If axes labels are taken into account when calculating the necessary margins
+        is controlled by `margin_pads_ignore_labels`.
+
+        Depending on the number of values passed, control:
+
+        1 value:
+            (top, right, bottom, left)
+
+        2 values:
+            (top, bottom), (right, left)
+
+        3 values:
+            top, (right, left), bottom
+
+        4 values:
+            top, right, bottom, left
+
+    margin_pads_ignore_labels : bool or tuple(bool, ...), default False
+        Control if `margin_pad_pts` should ignore axes decorations, such as
+        labels or colorbars.
+
+        The number of bools passed is analogous to `margin_pad_pts`.
+
+    col_pads_pts : float or tuple(floats, ...), default 10.0
+        Padding between each column of the subplots.
+
+        If axes labels are taken into account when calculating the necessary space
+        is controlled by `col_pads_ignore_labels`.
+
+        Multiple values will correspond to each column.
+
+    col_pads_ignore_labels : bool or tuple(bools, ...), default False
+        Control if `col_pad_pts` should ignore axes decorations, such as labels or
+        colorbars.
+
+        The number of bools passed is analogous to `col_pads_pts`.
+
+    row_pads_pts : float or tuple(floats, ...), default 10.0
+        Padding between each row of the subplots.
+
+        If axes labels are taken into account when calculating the necessary space
+        is controlled by `row_pads_ignore_labels`.
+
+        Multiple values will correspond to each row.
+
+    row_pads_ignore_labels : bool or tuple(bools, ...), default False
+        Control if `row_pad_pts` should ignore axes decorations, such as labels or
+        colorbars.
+
+        The number of bools passed is analogous to `row_pads_pts`.
+
+    max_figwidth : float, default :obj:`numpy.inf`
+        Maximum allowed figure width in inches after layout is applied.
+
+        If the current parameters result in a figure with a width larger than this,
+        :class:`.InvalidFigureError` will be raised.
+
+    Raises
+    ------
+    :class:`.InvalidFigureError`
+        Raised if figure width exceeds `max_figwidth`.
+
+    Examples
+    --------
+
+    For a figure to use this layout, its layout engine needs to be configured.
+    Some ways to do this are
+
+    .. code-block:: python
+
+        fig, ax = plt.subplots_mosaic([["a"]], layout=mplu.FixedLayoutEngine())
+        fig, ax = plt.subplots(layout=mplu.FixedLayoutEngine())
+        ax = plt.subplot()
+        plt.gcf().set_layout_engine(mplu.FixedLayoutEngine())
+    """
+
     _adjust_compatible = False
     _colorbar_gridspec = False
 

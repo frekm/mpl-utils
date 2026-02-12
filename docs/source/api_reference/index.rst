@@ -8,22 +8,18 @@ API reference
 .. autosummary::
     :toctree: _autogen
 
+    FixedLayoutEngine
     add_abc
     add_colorbar
     align_axes_vertically
     align_axes_horizontally
     centers_to_edges
-    Colors
     convert_to_steps
     crop_colormap
     dotted
     dash_dotted
     dashed
-    FixedLayoutEngine
     for_pcolormesh
-    OkabeItoPalette
-    OkabeItoAccentPalette
-    OkabeItoMutedPalette
     savefig
     set_axes_size
     set_colorbar_pad
@@ -32,3 +28,9 @@ API reference
     set_latex_backend
     square_polar_axes
     textwithbox
+    Colors
+    OkabeItoPalette
+    OkabeItoAccentPalette
+    OkabeItoMutedPalette
+    AliasError
+    InvalidFigureError
