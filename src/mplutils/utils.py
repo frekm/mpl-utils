@@ -1014,13 +1014,14 @@ def add_colorbar(
     **text_kwargs,
 ) -> mcbar.Colorbar:
     """
-    Add a colorbar to `axes`.
+    Add a colorbar to `ax`.
 
-    Create a new :class:`matplotlib.axes.Axes` next to `ax` with the same height
-    (or width), then plot a :class:`matplotlib.colorbar.Colorbar` in it.
+    It uses :meth:`matplotlib.figure.Figure.colorbar` to create a colorbar
+    and adjusts tick positions and labels appropriately depending on `location`.
 
-    If you change the figure-layout after the fact, you can update the colorbar
-    position with :func:`.update_colorbars`.
+    The colorbar will "steal" space from `ax`. Therefore, if you want to set the
+    axes to a fixed width (e.g., with :func:`.set_axes_size`), do this
+    *after* adding the colorbar.
 
     Parameters
     ----------
