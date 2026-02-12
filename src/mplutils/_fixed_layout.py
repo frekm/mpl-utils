@@ -366,7 +366,7 @@ def do_fixed_layout(fig: Figure, **params: Unpack[ParamsDict]):
     caxs_bboxes = get_caxes_bboxes_grid(fig, caxs)
     bboxes = get_bboxes_inch_grid(fig, axes_grid)
 
-    for _ in range(2):
+    for _ in range(3):
         tbboxes = get_tbboxes_inch_grid(fig, axes_grid, renderer)
 
         fw, fh = fig.get_size_inches()
