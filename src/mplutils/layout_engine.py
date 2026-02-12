@@ -11,6 +11,11 @@ class FixedLayoutEngine(LayoutEngine):
     This layout engine adjust the size of the figure while fixing the
     size of the axes.
 
+    .. attention::
+
+        The layout engine must be attached to a figure before any
+        colorbars are added to it.
+
     **Constrains:**
 
     - Fancy gridspecs are not supported. For example, an axes cannot span multiple
@@ -28,6 +33,10 @@ class FixedLayoutEngine(LayoutEngine):
 
         Use :func:`.set_axes_size`, :func:`.set_colorbar_thickness`, and
         :func:`.set_colorbar_pad` to control the physical size of axes and colorbars.
+
+    .. warning::
+
+        Calling :func:`matplotlib.pyplot.tight_layout` will disable this layout engine.
 
     Parameters
     ----------
@@ -108,6 +117,27 @@ class FixedLayoutEngine(LayoutEngine):
         fig, ax = plt.subplots(layout=mplu.FixedLayoutEngine())
         ax = plt.subplot()
         plt.gcf().set_layout_engine(mplu.FixedLayoutEngine())
+
+    The two examples below showcase the difference between this layout engine
+    and, e.g., the
+    `compressed layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>`__
+    of matplotlib.
+
+    With the "compressed" layout of matplotilb,
+    since the figure height is fixed, the axes in the subplots are shrunk dramatically,
+    and lots of space within the figure is "wasted". To fix this, one has to manually
+    adjust the figure height.
+
+    With the `FixedAxesLayoutEngine`, the size of the axes is fixed. This way, we
+    can set our desired size using :func:`.set_axes_size` and all necessary parameters
+    will be calculated by the engine (such as figure width and height, margins,
+    padding between rows and columns).
+
+    .. plot:: _examples/layout_compressed.py
+        :include-source:
+
+    .. plot:: _examples/layout_fixed.py
+        :include-source:
     """
 
     _adjust_compatible = False
