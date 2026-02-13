@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 from matplotlib.patches import Rectangle
 
-palette = mplu.okabe_ito
+palette = mplu.OkabeItoAccentPalette()
 
 ax = plt.subplot()
+plt.gcf().set_layout_engine(mplu.FixedLayoutEngine())
 ax.axis("off")
-ax.set_aspect("equal")
 
 for i, color in enumerate(palette):
     ax.add_patch(Rectangle((i, 0), 1, 1, facecolor=color))
@@ -15,5 +15,6 @@ for i, color in enumerate(palette):
 
 ax.set_xlim(0, len(palette))
 
-mplu.set_axes_size_inches(len(palette), len(palette))
-mplu.make_me_nice(fix_figwidth=False)
+mplu.set_axes_size(len(palette), 1.0)
+
+plt.show()
