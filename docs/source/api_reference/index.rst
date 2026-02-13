@@ -20,6 +20,7 @@ API reference
     dash_dotted
     dashed
     for_pcolormesh
+    get_axes_margins
     savefig
     set_axes_size
     set_colorbar_pad

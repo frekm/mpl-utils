@@ -12,9 +12,10 @@ from ._layout import (
     set_axes_height_inch,
     set_colorbar_thickness_inch,
     set_colorbar_pad_inch,
+    get_renderer,
 )
-from .constants import PTS_PER_INCH
-from ._core import convert_to_inches
+from . import constants
+from ._core import convert_to_inches, get_ax_bbox_inch, get_ax_tbbox_inch
 
 
 def set_axes_size(
@@ -166,3 +167,56 @@ def align_axes_horizontally(
         Which reference axis to take from `reference_ax`.
     """
     ...
+
+
+def get_axes_margins(
+    ax: Axes | None = None, unit: Literal["pts", "mm", "inch"] = "pts"
+) -> tuple[float, float, float, float]:
+    """
+    Get the size of the margins of `ax` in physical units.
+
+    The margins are defined by labels, colorbars, etc.
+
+    Parameters
+    ----------
+    ax : :class:`matplotlib.axes.Axes`, optional
+        If None, use last active axes.
+
+    unit : ``"pts"`` , ``"mm"`` , ``"inch"`` , default ``"pts"``
+        Unit of outputs.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        (top, right, bottom, left) margins in units specified by `unit`.
+
+    Examples
+    --------
+
+        >>> plt.subplot()
+        <Axes: >
+        >>> mplu.get_axes_margins()
+        (3.9599999999999795, 7.919999999999959, 17.079999999999995, 22.84000000000001)
+    """
+    ax = ax or plt.gca()
+    fig = ax.figure
+    if not isinstance(fig, Figure):
+        raise ValueError("ax must be part of a Figure")
+    renderer = get_renderer(fig)
+    bbox = get_ax_bbox_inch(fig, ax)
+    tbbox = get_ax_tbbox_inch(fig, ax, renderer)
+
+    out_inch = (
+        float(tbbox.y1 - bbox.y1),
+        float(tbbox.x1 - bbox.x1),
+        float(bbox.y0 - tbbox.y0),
+        float(bbox.x0 - tbbox.x0),
+    )
+
+    if unit == "inch":
+        return out_inch
+    if unit == "pts":
+        return tuple([el * constants.PTS_PER_INCH for el in out_inch])  # type: ignore
+    if unit == "mm":
+        return tuple([el * constants.MM_PER_INCH for el in out_inch])  # type: ignore
+    raise ValueError(f"{unit=}, but it must be one of ('pts', 'mm', 'inch')")

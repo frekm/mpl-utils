@@ -2,6 +2,11 @@ from typing import Literal
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.transforms import Bbox
+from matplotlib.backend_bases import RendererBase
+import numpy as np
+
+from . import _core as core
+from . import constants
 
 
 def update_colorbar(cax: Axes, parent_bbox_old: Bbox, parent_bbox_new: Bbox) -> None:
@@ -171,3 +176,15 @@ def set_colorbar_pad_inch(fig, cax, pad_inch: float) -> None:
             pos = Bbox.from_bounds(pos_cax.x0, y0, pos_cax.width, pos_cax.height)
             cax.set_position(pos)
     cb_info["pad"] = gap
+
+
+def get_renderer(fig: Figure) -> RendererBase:
+    fig.canvas.draw()
+    method = getattr(fig, "_get_renderer", None)
+    msg = "cannot get renderer for figure for current backend"
+    if method is None:
+        raise ValueError(msg)
+    renderer = method()
+    if not isinstance(renderer, RendererBase):
+        raise ValueError(msg)
+    return renderer

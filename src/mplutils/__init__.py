@@ -4,6 +4,7 @@ from .layout import (
     set_colorbar_thickness,
     align_axes_horizontally,
     align_axes_vertically,
+    get_axes_margins,
 )
 
 from .colors import (
