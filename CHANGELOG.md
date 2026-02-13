@@ -1,6 +1,7 @@
-# v0.3.1-dev
-- Update documentation
-- Add `update_colorbars`
+# v0.4.0
+- Completely change how layout operations are handled
+  - Remove lots of old layout-methods
+  - Add `FixedLayoutEngine`, which now does the layout 
 
 # v0.3.0
 - Add `TrimmedLayoutEngine`
