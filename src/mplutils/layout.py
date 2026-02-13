@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.colorbar import Colorbar
+from matplotlib.transforms import Bbox
 
 from ._layout import (
     normalize_anchor,
@@ -13,6 +14,7 @@ from ._layout import (
     set_colorbar_thickness_inch,
     set_colorbar_pad_inch,
     get_renderer,
+    update_colorbar,
 )
 from . import constants
 from ._core import convert_to_inches, get_ax_bbox_inch, get_ax_tbbox_inch
@@ -141,10 +143,31 @@ def align_axes_vertically(
     reference_ax : :class:`matplotlib.axes.Axes`
         Reference axes.
 
+        Should be in the same row as `ax`.
+
     alignment : {``"center"``, ``"top"``, ``"bottom"``}, default ``"center"``
         Which reference axis to take from `reference_ax`.
     """
-    ...
+    bbox_ax = ax.get_position()
+    bbox_ref = reference_ax.get_position()
+
+    if alignment == "center":
+        delta = bbox_ref.height - bbox_ax.height
+        y0 = bbox_ref.y0 + delta / 2.0
+    elif alignment == "top":
+        y0 = bbox_ref.y1 - bbox_ax.height
+    elif alignment == "bottom":
+        y0 = bbox_ref.y0
+    else:
+        valid_anchors = "center", "top", "bottom"
+        msg = f"{alignment=}, but it should be one of {valid_anchors}"
+        raise ValueError(msg)
+
+    new_bbox = Bbox.from_bounds(bbox_ax.x0, y0, bbox_ax.width, bbox_ax.height)
+    ax.set_position(new_bbox)
+
+    for cax in getattr(ax, "_colorbars", []):
+        update_colorbar(cax, bbox_ax, new_bbox)
 
 
 def align_axes_horizontally(
@@ -163,10 +186,31 @@ def align_axes_horizontally(
     reference_ax : :class:`matplotlib.axes.Axes`
         Reference axes.
 
+        Should be in the same column as `ax`.
+
     alignment : {``"center"``, ``"left"``, ``"right"``}, default ``"center"``
         Which reference axis to take from `reference_ax`.
     """
-    ...
+    bbox_ax = ax.get_position()
+    bbox_ref = reference_ax.get_position()
+
+    if alignment == "center":
+        delta = bbox_ref.width - bbox_ax.width
+        x0 = bbox_ref.x0 + delta / 2.0
+    elif alignment == "right":
+        x0 = bbox_ref.x1 - bbox_ax.width
+    elif alignment == "left":
+        x0 = bbox_ref.x0
+    else:
+        valid_anchors = "center", "left", "right"
+        msg = f"{alignment=}, but it should be one of {valid_anchors}"
+        raise ValueError(msg)
+
+    new_bbox = Bbox.from_bounds(x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height)
+    ax.set_position(new_bbox)
+
+    for cax in getattr(ax, "_colorbars", []):
+        update_colorbar(cax, bbox_ax, new_bbox)
 
 
 def get_axes_margins(
