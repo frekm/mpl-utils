@@ -896,6 +896,9 @@ def add_abc(
     .. plot:: _examples/add_abc1.py
         :include-source:
 
+    .. plot:: _examples/add_abc2.py
+        :include-source:
+
     """
     fig = fig or plt.gcf()
     axs = get_axes_grid(get_axes_for_layout(fig.axes))
