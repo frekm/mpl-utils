@@ -1,5 +1,5 @@
 from .errors import AliasError
-from .core import FONT_SCALINGS
+from ._core import FONT_SCALINGS
 
 import matplotlib.pyplot as plt
 

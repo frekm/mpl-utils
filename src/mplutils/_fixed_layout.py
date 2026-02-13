@@ -8,7 +8,7 @@ from numpy.typing import NDArray, ArrayLike
 import logging
 from typing import cast, TypedDict, Unpack
 
-from . import core
+from . import _core
 from . import errors
 from .constants import PTS_PER_INCH
 
@@ -16,7 +16,7 @@ from .constants import PTS_PER_INCH
 logger = logging.getLogger(__name__)
 
 
-def normalize_margins(arg: ArrayLike) -> core.Quadrants:
+def normalize_margins(arg: ArrayLike) -> _core.Quadrants:
     """
     Processes arguments that represent margins of a figure.
 
@@ -34,15 +34,15 @@ def normalize_margins(arg: ArrayLike) -> core.Quadrants:
     """
     arg = np.asarray(arg)
     if not arg.ndim > 0:
-        rtn = core.Quadrants(arg, arg, arg, arg)
+        rtn = _core.Quadrants(arg, arg, arg, arg)
     elif len(arg) == 1:
-        rtn = core.Quadrants(arg[0], arg[0], arg[0], arg[0])
+        rtn = _core.Quadrants(arg[0], arg[0], arg[0], arg[0])
     elif len(arg) == 2:
-        rtn = core.Quadrants(arg[0], arg[1], arg[0], arg[1])
+        rtn = _core.Quadrants(arg[0], arg[1], arg[0], arg[1])
     elif len(arg) == 3:
-        rtn = core.Quadrants(arg[0], arg[1], arg[2], arg[1])
+        rtn = _core.Quadrants(arg[0], arg[1], arg[2], arg[1])
     elif len(arg) == 4:
-        rtn = core.Quadrants(*arg)
+        rtn = _core.Quadrants(*arg)
     else:
         raise ValueError(f"{arg=} has invalid length")
     return rtn
@@ -170,7 +170,7 @@ def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
     dpi = fig.dpi
     tbbox_ax = ax.get_tightbbox(renderer, for_layout_only=False)
 
-    xy_candidates = core.Quadrants(
+    xy_candidates = _core.Quadrants(
         [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
     )
 
@@ -205,21 +205,21 @@ def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
     return rtn
 
 
-def get_bboxes_inch_grid(fig, axs) -> core.Array[Bbox]:
+def get_bboxes_inch_grid(fig, axs) -> _core.Array[Bbox]:
     bboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         bboxes_inch[i] = get_ax_bbox_inch(fig, ax)
     return bboxes_inch  # type: ignore
 
 
-def get_tbboxes_inch_grid(fig, axs, renderer) -> core.Array[Bbox]:
+def get_tbboxes_inch_grid(fig, axs, renderer) -> _core.Array[Bbox]:
     tbboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
         tbboxes_inch[i] = get_ax_tbbox_inch(fig, ax, renderer)
     return tbboxes_inch  # type: ignore
 
 
-def get_axes_grid(axes: list[Axes]) -> core.Array[Axes]:
+def get_axes_grid(axes: list[Axes]) -> _core.Array[Axes]:
     subplotspecs: dict[Axes, SubplotSpec] = {}
     first = True
     for ax in axes:
@@ -316,8 +316,8 @@ def add_vspace_inch(
     fig: Figure,
     idx: int,
     vspace: float,
-    axes: core.Array[Axes],
-    axes_bboxes_inch: core.Array[Bbox],
+    axes: _core.Array[Axes],
+    axes_bboxes_inch: _core.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):
@@ -338,8 +338,8 @@ def add_hspace_inch(
     fig: Figure,
     idx: int,
     hspace: float,
-    axes: core.Array[Axes],
-    axes_bboxes_inch: core.Array[Bbox],
+    axes: _core.Array[Axes],
+    axes_bboxes_inch: _core.Array[Bbox],
     caxs: list[list[list[Axes]]],
     cax_bboxes_inch: list[list[list[Bbox]]],
 ):

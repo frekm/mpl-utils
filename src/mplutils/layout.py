@@ -14,7 +14,7 @@ from ._layout import (
     set_colorbar_pad_inch,
 )
 from .constants import PTS_PER_INCH
-from .core import convert_to_inches
+from ._core import convert_to_inches
 
 
 def set_axes_size(

@@ -19,7 +19,7 @@ import numpy.typing as npt
 
 from .constants import PTS_PER_INCH
 from .colors import OkabeItoPalette
-from .core import FontsizeLike, convert_to_inches
+from ._core import FontsizeLike, convert_to_inches
 from ._fixed_layout import get_axes_for_layout, get_axes_grid, get_bboxes_inch_grid
 from ._layout import set_colorbar_thickness_inch, set_colorbar_pad_inch
 from ._utils import normalize_lw_fs_lh
