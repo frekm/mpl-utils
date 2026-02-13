@@ -1,3 +1,6 @@
+# v0.3.0
+- Add `TrimmedLayoutEngine`
+
 # v0.2.0
 - Add `convert_to_steps`
 - Update documentation

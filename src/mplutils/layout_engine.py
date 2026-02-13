@@ -1,4 +1,6 @@
-from matplotlib.layout_engine import LayoutEngine
+from matplotlib.layout_engine import LayoutEngine, ConstrainedLayoutEngine
+from matplotlib.figure import Figure
+from ._trimmed_layout import trim_figure
 import numpy as np
 
 from ._fixed_layout import do_fixed_layout, validate_figure, ParamsDict
@@ -210,3 +212,80 @@ class FixedLayoutEngine(LayoutEngine):
         validate_figure(fig)
         do_fixed_layout(fig, **self._params)
         self._is_executing = False
+
+
+class TrimmedLayoutEngine(ConstrainedLayoutEngine):
+    """
+    Layout Engine that trims excess figure after a "compressed" layout is applied.
+
+    Parameters
+    ----------
+    pad_pts : float | Iterable[float]
+        Set padding around the subplots in pts.
+
+        Depending on how many values are passed, they correspond to:
+
+        1 value:
+            (top, right, bottom, left)
+
+        2 values:
+            (top, bottom), (right, left)
+
+        3 values:
+            top, (right, left), bottom
+
+        4 values:
+            top, right, bottom, left
+
+    **kwargs
+        Keyword arguments passed to
+        :class:`matplotlib.layout_engine.ConstrainedLayoutEngine`
+
+        See also
+        `matplotlib's constrained layout guide <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html#constrainedlayout-guide>`__.
+
+    Notes
+    -----
+    Interactive resizeing of the figure (e.g., after calling plt.show()) will
+    result in messed up layouts. Don't use this engine for these use cases.
+
+    Examples
+    --------
+
+    Since the compressed layout does not change figure size (for good reasons),
+    a fixed aspect of an axes may result in empty space in the figure:
+
+    .. plot:: _examples/layout/trimmedlayoutengine.py
+        :include-source:
+
+    `TrimmedLayoutEngine` simply removes this extra space after the compressed
+    layout has been applied:
+
+    .. plot:: _examples/layout/trimmedlayoutengine2.py
+        :include-source:
+    """
+
+    def __init__(
+        self,
+        pad_pts: (
+            float
+            | tuple[float, float]
+            | tuple[float, float, float]
+            | tuple[float, float, float, float]
+        ) = 5.0,
+        **kwargs,
+    ):
+        super().__init__(compress=True, **kwargs)
+        self.pad_pts = pad_pts
+
+        self._is_executing = False
+
+    def execute(self, fig: Figure):
+        if self._is_executing:
+            return
+        self._is_executing = True
+        try:
+            super().execute(fig)
+            trim_figure(fig, self.pad_pts)
+        finally:
+            self._is_executing = False
