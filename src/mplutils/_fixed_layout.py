@@ -160,62 +160,17 @@ def get_axes_for_layout(axes: list[Axes]) -> list[Axes]:
     return axes_for_layout
 
 
-def get_ax_bbox_inch(fig, ax) -> Bbox:
-    fw, fh = fig.get_size_inches()
-    bbox = ax.get_position()
-    return Bbox([[bbox.x0 * fw, bbox.y0 * fh], [bbox.x1 * fw, bbox.y1 * fh]])
-
-
-def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
-    dpi = fig.dpi
-    tbbox_ax = ax.get_tightbbox(renderer, for_layout_only=False)
-
-    xy_candidates = _core.Quadrants(
-        [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
-    )
-
-    for cb in ax._colorbars:
-        tbbox_cb = cb.get_tightbbox(renderer)
-        location = cb._colorbar_info["location"]
-        if location == "left":
-            xy_candidates.left.append(tbbox_cb.x0)
-            xy_candidates.top.append(tbbox_cb.y1)
-            xy_candidates.bottom.append(tbbox_cb.y0)
-        if location == "right":
-            xy_candidates.right.append(tbbox_cb.x1)
-            xy_candidates.top.append(tbbox_cb.y1)
-            xy_candidates.bottom.append(tbbox_cb.y0)
-        if location == "top":
-            xy_candidates.top.append(tbbox_cb.y1)
-            xy_candidates.left.append(tbbox_cb.x0)
-            xy_candidates.right.append(tbbox_cb.x1)
-        if location == "bottom":
-            xy_candidates.bottom.append(tbbox_cb.y0)
-            xy_candidates.left.append(tbbox_cb.x0)
-            xy_candidates.right.append(tbbox_cb.x1)
-
-    relevant_xy = (
-        np.min([x0 / dpi for x0 in xy_candidates.left]),
-        np.min([y0 / dpi for y0 in xy_candidates.bottom]),
-        np.max([x1 / dpi for x1 in xy_candidates.right]),
-        np.max([y1 / dpi for y1 in xy_candidates.top]),
-    )
-
-    rtn = Bbox.from_extents(*relevant_xy)
-    return rtn
-
-
 def get_bboxes_inch_grid(fig, axs) -> _core.Array[Bbox]:
     bboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
-        bboxes_inch[i] = get_ax_bbox_inch(fig, ax)
+        bboxes_inch[i] = _core.get_ax_bbox_inch(fig, ax)
     return bboxes_inch  # type: ignore
 
 
 def get_tbboxes_inch_grid(fig, axs, renderer) -> _core.Array[Bbox]:
     tbboxes_inch = np.empty_like(axs, dtype=Bbox)
     for i, ax in np.ndenumerate(axs):
-        tbboxes_inch[i] = get_ax_tbbox_inch(fig, ax, renderer)
+        tbboxes_inch[i] = _core.get_ax_tbbox_inch(fig, ax, renderer)
     return tbboxes_inch  # type: ignore
 
 
@@ -307,7 +262,7 @@ def get_caxes_grid(axes) -> list[list[list[Axes]]]:
 
 def get_caxes_bboxes_grid(fig, cbar_axes) -> list[list[list[Bbox]]]:
     return [
-        [[get_ax_bbox_inch(fig, ax) for ax in caxes_rc] for caxes_rc in caxes_row]
+        [[_core.get_ax_bbox_inch(fig, ax) for ax in caxes_rc] for caxes_rc in caxes_row]
         for caxes_row in cbar_axes
     ]
 

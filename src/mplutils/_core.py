@@ -1,6 +1,7 @@
 import typing as tp
 
 import numpy as np
+from matplotlib.transforms import Bbox
 
 DType = tp.TypeVar("DType")
 
@@ -155,3 +156,48 @@ def convert_to_inches(val: float, unit: tp.Literal["inch", "pts", "mm"]) -> floa
         return val / 25.4
     valid_units = "inch", "pts", "mm"
     raise ValueError(f"{unit=}, but it must be one of {valid_units}")
+
+
+def get_ax_bbox_inch(fig, ax) -> Bbox:
+    fw, fh = fig.get_size_inches()
+    bbox = ax.get_position()
+    return Bbox([[bbox.x0 * fw, bbox.y0 * fh], [bbox.x1 * fw, bbox.y1 * fh]])
+
+
+def get_ax_tbbox_inch(fig, ax, renderer) -> Bbox:
+    dpi = fig.dpi
+    tbbox_ax = ax.get_tightbbox(renderer, for_layout_only=False)
+
+    xy_candidates = Quadrants(
+        [tbbox_ax.y1], [tbbox_ax.x1], [tbbox_ax.y0], [tbbox_ax.x0]
+    )
+
+    for cb in ax._colorbars:
+        tbbox_cb = cb.get_tightbbox(renderer)
+        location = cb._colorbar_info["location"]
+        if location == "left":
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.bottom.append(tbbox_cb.y0)
+        if location == "right":
+            xy_candidates.right.append(tbbox_cb.x1)
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.bottom.append(tbbox_cb.y0)
+        if location == "top":
+            xy_candidates.top.append(tbbox_cb.y1)
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.right.append(tbbox_cb.x1)
+        if location == "bottom":
+            xy_candidates.bottom.append(tbbox_cb.y0)
+            xy_candidates.left.append(tbbox_cb.x0)
+            xy_candidates.right.append(tbbox_cb.x1)
+
+    relevant_xy = (
+        np.min([x0 / dpi for x0 in xy_candidates.left]),
+        np.min([y0 / dpi for y0 in xy_candidates.bottom]),
+        np.max([x1 / dpi for x1 in xy_candidates.right]),
+        np.max([y1 / dpi for y1 in xy_candidates.top]),
+    )
+
+    rtn = Bbox.from_extents(*relevant_xy)
+    return rtn
