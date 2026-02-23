@@ -16,4 +16,4 @@ dependencies = ["numpy", "matplotlib"]
 
 [project.urls]
 "Repository" = "https://github.com/frekm/mpl-utils"
-# "Documentation" = "https://atomphys-atompy.readthedocs.io/en/latest/"
+"Documentation" = "https://mpl-utils.readthedocs.io/en/latest/"
