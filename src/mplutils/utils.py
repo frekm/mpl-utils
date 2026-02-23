@@ -1060,9 +1060,15 @@ def add_colorbar(
     .. warning::
 
         This method is intended to be used with :class:`.FixedLayoutEngine`.
-        Matplotlib's default layouts (e.g.,
-        `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>__)
+        Matplotlib's own layouts (e.g.,
+        `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>`__)
         may not work as intended.
+
+    .. warning::
+
+        If you use this method with :func:`~matplotlib.pyplot.imshow`, set the
+        use the keyword ``aspect="auto"``, otherwise the colorbar may not be
+        aligned properly.
 
     Parameters
     ----------
