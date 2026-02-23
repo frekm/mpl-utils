@@ -1157,7 +1157,7 @@ def add_colorbar(
         anchor = (0, 0.5) if location == "right" else (1, 0.5)
         set_axes_width_inch(fig, ax, old_pos.width * fw, anchor)
     else:  # top bottom
-        anchor = (0.5, 0.0) if location == "top" else (0.5, 1.0)
+        anchor = (0.5, 1.0) if location == "top" else (0.5, 0.0)
         set_axes_height_inch(fig, ax, old_pos.height * fh, anchor)
 
     return cbar
