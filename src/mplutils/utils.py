@@ -1094,6 +1094,12 @@ def add_colorbar(
         If str, must be of form "x%" and will set the thickness relative to the
         axes size.
 
+        .. warning::
+
+            If *thickness* is of form "x%", it is relative to the initial size of the
+            axes. If you resize the axes afterward (e.g., with :func:`.set_axes_size`),
+            the thickness will not be updated.
+
     pad : float or str or None, default "3.5%"
         The pad between the colorbar and `axes` in pts.
 
