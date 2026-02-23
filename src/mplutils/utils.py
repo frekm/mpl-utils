@@ -1046,7 +1046,7 @@ def add_colorbar(
     ax: maxes.Axes | None = None,
     location: tp.Literal["left", "right", "top", "bottom"] = "right",
     thickness: float | str | None = "5%",
-    pad: float | str | None = "1.5%",
+    pad: float | str | None = "3.5%",
     unit: tp.Literal["inch", "pts", "mm"] = "pts",
     label: str | None = None,
     **text_kwargs,
@@ -1088,7 +1088,7 @@ def add_colorbar(
         If str, must be of form "x%" and will set the thickness relative to the
         axes size.
 
-    pad : float or str or None, default "1.5%"
+    pad : float or str or None, default "3.5%"
         The pad between the colorbar and `axes` in pts.
 
         Analog to *thickness*.
