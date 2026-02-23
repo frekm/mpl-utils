@@ -1,3 +1,6 @@
+# v0.4.1-dev
+- Fix but preventing axes with locked aspect not resizing with `set_axes_size`
+
 # v0.4.0
 - Completely change how layout operations are handled
   - Remove lots of old layout-methods

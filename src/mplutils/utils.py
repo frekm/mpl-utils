@@ -21,7 +21,12 @@ from .constants import PTS_PER_INCH
 from .colors import OkabeItoPalette
 from ._core import FontsizeLike, convert_to_inches
 from ._fixed_layout import get_axes_for_layout, get_axes_grid, get_bboxes_inch_grid
-from ._layout import set_colorbar_thickness_inch, set_colorbar_pad_inch
+from ._layout import (
+    set_colorbar_thickness_inch,
+    set_colorbar_pad_inch,
+    set_axes_width_inch,
+    set_axes_height_inch,
+)
 from ._utils import normalize_lw_fs_lh
 
 
@@ -1007,12 +1012,42 @@ def square_polar_axes(ax: maxes.Axes | None = None, zorder: float = 0.98) -> Non
     ax.set_axis_off()
 
 
+def normalize_colorbar_metrics(
+    fig: mfig.Figure,
+    ax: maxes.Axes,
+    thickness: float | str | None,
+    pad: float | str | None,
+    unit: tp.Literal["mm", "inch", "pts"],
+    location: tp.Literal["left", "right", "top", "bottom"] = "right",
+) -> tuple[float | None, float | None]:
+    fw, fh = fig.get_size_inches()
+    pos = ax.get_position()
+    if location in "left right":
+        ax_size = pos.width
+        fig_size = fw
+    else:  # top bottom
+        ax_size = pos.height
+        fig_size = fh
+    metrics: list[float | None] = [None, None]
+    for i, metric in enumerate((thickness, pad)):
+        if metric is None:
+            continue
+        elif isinstance(metric, str):
+            if metric[-1] != "%":
+                raise ValueError("invalid string, must end with a %")
+            metrics[i] = (float(metric[:-1]) * ax_size / 100.0) * fig_size
+        else:
+            metrics[i] = convert_to_inches(metric, unit)
+    return tuple(metrics)  # type: ignore
+
+
 def add_colorbar(
     mappable: cm.ScalarMappable,
     ax: maxes.Axes | None = None,
     location: tp.Literal["left", "right", "top", "bottom"] = "right",
-    thickness_pts: float | None = None,
-    pad_pts: float | None = None,
+    thickness: float | str | None = "5%",
+    pad: float | str | None = "1.5%",
+    unit: tp.Literal["inch", "pts", "mm"] = "pts",
     label: str | None = None,
     **text_kwargs,
 ) -> mcbar.Colorbar:
@@ -1022,9 +1057,12 @@ def add_colorbar(
     It uses :meth:`matplotlib.figure.Figure.colorbar` to create a colorbar
     and adjusts tick positions and labels appropriately depending on `location`.
 
-    The colorbar will "steal" space from `ax`. Therefore, if you want to set the
-    axes to a fixed width (e.g., with :func:`.set_axes_size`), do this
-    *after* adding the colorbar.
+    .. warning::
+
+        This method is intended to be used with :class:`.FixedLayoutEngine`.
+        Matplotlib's default layouts (e.g.,
+        `constrained layout <https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html>__)
+        may not work as intended.
 
     Parameters
     ----------
@@ -1041,22 +1079,27 @@ def add_colorbar(
     location : {"left", "right", "top", "bottom"}, default: ``"right"``
         Location of the colorbar relative to `ax`.
 
-    thickness_pts : float, optional
+    thickness : float or str or None, default "5%"
         The thickness of the colorbar in pts.
 
         If ``None``, use the default values of
         :meth:`matplotlib.figure.Figure.colorbar`.
 
-    pad_pts : float, optional
+        If str, must be of form "x%" and will set the thickness relative to the
+        axes size.
+
+    pad : float or str or None, default "1.5%"
         The pad between the colorbar and `axes` in pts.
 
-        If ``None``, use the default values of
-        :meth:`matplotlib.figure.Figure.colorbar`.
+        Analog to *thickness*.
 
     label : str, optional
         Label of the colorbar.
 
         By default, the label of a right-sided colorbar will read from top to bottom.
+
+    unit : {"mm", "pts", "inch"}, default "pts"
+        Unit of *thickness* and *pad*.
 
     Other parameters
     ----------------
@@ -1078,19 +1121,22 @@ def add_colorbar(
     """
     ax = ax or plt.gca()
     fig = ax.figure
+    if not isinstance(fig, mfig.Figure):
+        raise ValueError("ax must be in a top-level Figure")
 
+    old_pos = ax.get_position().frozen()
     cbar = fig.colorbar(mappable, ax=ax, use_gridspec=False, location=location)
 
     axis = cbar.ax.yaxis if location in ("left", "right") else cbar.ax.xaxis
     axis.set_ticks_position(location)  # type: ignore
     axis.set_label_position(location)  # type: ignore
 
-    if thickness_pts is not None:
-        thickness_inch = convert_to_inches(thickness_pts, "pts")
+    thickness_inch, pad_inch = normalize_colorbar_metrics(fig, ax, thickness, pad, unit)
+
+    if thickness_inch is not None:
         set_colorbar_thickness_inch(fig, cbar.ax, thickness_inch)
-    if pad_pts is not None:
-        pad_inch = convert_to_inches(pad_pts, "pts")
-        set_colorbar_pad_inch(fig, cbar, pad_inch)
+    if pad_inch is not None:
+        set_colorbar_pad_inch(fig, cbar.ax, pad_inch)
 
     if label is not None:
         kwargs = text_kwargs.copy()
@@ -1099,5 +1145,13 @@ def add_colorbar(
                 kwargs["verticalalignment"] = "baseline"
             kwargs.setdefault("rotation", 270.0)
         cbar.set_label(label, **kwargs)
+
+    fw, fh = fig.get_size_inches()
+    if location in "left right":
+        anchor = (0, 0.5) if location == "right" else (1, 0.5)
+        set_axes_width_inch(fig, ax, old_pos.width * fw, anchor)
+    else:  # top bottom
+        anchor = (0.5, 0.0) if location == "top" else (0.5, 1.0)
+        set_axes_height_inch(fig, ax, old_pos.height * fh, anchor)
 
     return cbar

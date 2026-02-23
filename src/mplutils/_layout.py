@@ -1,5 +1,6 @@
 from typing import Literal
 from matplotlib.axes import Axes
+from matplotlib.projections import PolarAxes
 from matplotlib.figure import Figure
 from matplotlib.transforms import Bbox
 from matplotlib.backend_bases import RendererBase
@@ -37,20 +38,43 @@ def update_colorbar(cax: Axes, parent_bbox_old: Bbox, parent_bbox_new: Bbox) -> 
     cbinfo["aspect"] = pos.height / pos.width
 
 
+def get_fixed_aspect(fig: Figure, ax: Axes) -> float | None:
+    def calc_aspect() -> float:
+        fw, fh = fig.get_size_inches()
+        pos = ax.get_position()
+        return (pos.height * fh) / (pos.width * fw)
+
+    old_adjustable = ax.get_adjustable()
+    fixed_aspect = None
+    try:
+        # matplotlib raises a ValueError if set_adjustable("datalim") is called
+        # on an axes with a fixed aspect ratio (e.g., polar axes).
+        ax.set_adjustable("datalim")
+    except ValueError:
+        fixed_aspect = calc_aspect()
+    if ax.get_aspect() != "auto" and old_adjustable == "box" and fixed_aspect is None:
+        fixed_aspect = calc_aspect()
+    ax.set_adjustable(old_adjustable)
+    return fixed_aspect
+
+
 def set_axes_width_inch(
     fig: Figure,
     ax: Axes,
     width_inch: float,
     anchor: tuple[float, float],
 ) -> None:
-    width = width_inch / fig.get_size_inches()[0]
     old_pos = ax.get_position().frozen()
+    fw, fh = fig.get_size_inches()
+    aspect = get_fixed_aspect(fig, ax)
+    width = width_inch / fw
+    height = old_pos.height if aspect is None else aspect * width_inch / fh
     fx, fy = anchor
     fixed_x = old_pos.x0 + fx * old_pos.width
     fixed_y = old_pos.y0 + fy * old_pos.height
     new_x0 = fixed_x - fx * width
-    new_y0 = fixed_y - fy * old_pos.height
-    new_pos = Bbox.from_bounds(new_x0, new_y0, width, old_pos.height)
+    new_y0 = fixed_y - fy * height
+    new_pos = Bbox.from_bounds(new_x0, new_y0, width, height)
     ax.set_position(new_pos)
     caxes = getattr(ax, "_colorbars", [])
     for cax in caxes:
@@ -63,14 +87,17 @@ def set_axes_height_inch(
     height_inch: float,
     anchor: tuple[float, float],
 ) -> None:
-    height = height_inch / fig.get_size_inches()[1]
+    fw, fh = fig.get_size_inches()
     old_pos = ax.get_position().frozen()
+    aspect = get_fixed_aspect(fig, ax)
+    height = height_inch / fh
+    width = old_pos.width if aspect is None else height_inch / fw / aspect
     fx, fy = anchor
     fixed_x = old_pos.x0 + fx * old_pos.width
     fixed_y = old_pos.y0 + fy * old_pos.height
-    new_x0 = fixed_x - fx * old_pos.width
+    new_x0 = fixed_x - fx * width
     new_y0 = fixed_y - fy * height
-    new_pos = Bbox.from_bounds(new_x0, new_y0, old_pos.width, height)
+    new_pos = Bbox.from_bounds(new_x0, new_y0, width, height)
     ax.set_position(new_pos)
     caxes = getattr(ax, "_colorbars", [])
     for cax in caxes:
