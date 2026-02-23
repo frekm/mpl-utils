@@ -1,6 +1,7 @@
-# v0.5.0-dev
+# v0.5.0
 - Fix but preventing axes with locked aspect not resizing with `set_axes_size`
 - Change default thickness and padding of `add_colorbar`
+- Documentation updates
 
 # v0.4.0
 - Completely change how layout operations are handled
