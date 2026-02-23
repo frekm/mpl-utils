@@ -27,6 +27,8 @@ if "%1" == "clean" (
         REM echo No '_autogen' directories found in %SOURCEDIR%.
     )
 
+    %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+
     echo Cleanup complete.
     popd
     exit /b 0
