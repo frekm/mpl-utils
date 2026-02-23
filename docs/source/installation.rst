@@ -5,11 +5,16 @@ Installation & Usage
 Installation
 ============
 
-There are multiple ways to install the package:
+.. attention::
 
-1. Simple drop-in
-2. Using ``git`` and ``pip``.
-3. From source
+    This module is *not* provided on `PyPI <https://pypi.org/>`__. It must be
+    installed from `GitHub <github.com/frekm/mpl-utils>`__ using one of the
+    methods below.
+
+    This module is *not* the same as the one provided on PyPI!
+
+    **Do not attempt to install this module via** ``pip install mplutils``.
+
 
 
 Simple drop-in
@@ -30,8 +35,8 @@ Other methods are listed `here <https://matplotlib.org/stable/install/index.html
 
 
 
-Install using ``git`` and ``pip``
----------------------------------
+Install using ``pip`` with ``git``
+----------------------------------
 
 If you have ``git`` installed on your system, you can install the package directly
 from GitHub.
@@ -40,11 +45,11 @@ from GitHub.
 
     pip install git+https://github.com/frekm/mpl-utils.git
 
-You can install a particular version by appending it, e.g. ``v0.1.0``,
+You can install a particular version by appending it, e.g. ``v0.5.0``,
 
 .. code-block:: shell
 
-    pip install git+https://github.com/frekm/mpl-utils.git@v0.1.0
+    pip install git+https://github.com/frekm/mpl-utils.git@v0.5.0
 
 Check the `release page <https://github.com/frekm/mpl-utils/releases/>`__
 which versions exist.
@@ -58,8 +63,8 @@ SHA of the commit in question, and install it, e.g.,
     pip install git+https://github.com/frekm/mpl-utils.git@52ef552a15a7b096824dd6457f35f40542f30686
 
 
-Install using https
--------------------
+Install using ``pip`` with ``https``
+------------------------------------
 
 If you don't have git installed on your system, you can install version
 (not necessarily the latest release) using
@@ -80,10 +85,9 @@ Install from source
 -------------------
 
 - From the latest `release page <https://github.com/frekm/mpl-utils/releases/latest>`__,
-  and download the source code (not ``mplutils.zip``).
+  download the source code (not ``mplutils.zip``).
 - Extract the contents.
 - Run ``pip install <path>/mpl-utils-<version>/src``.
-
 
 
 
