@@ -4,15 +4,17 @@ mplutils documentation
 Utility methods for `matplotlib <https://matplotlib.org/>`__ to layout figures and axes
 with fine control over absolute dimensions.
 
-Main features
--------------
+mplutils provides a custom layout engine for matplotlib which fixes axes sizes instead
+of figure sizes. See :class:`.FixedLayoutEngine`.
 
-- Optimize whitespace in figures similar to :func:`matplotlib.pyplot.tight_layout`,
-  but with better control over absolute dimensions and aspect ratios.
-- Fix size of axes (rather than figures)
-- Dynamically adjust figure height depending on axes aspect ratios.
-- Control spacing in-between axes
-- Add colorbars that properly stick to axes.
+In addition, it provides methods that adjust the physical dimensions of axes and
+colorbars. See :func:`.set_axes_size`, :func:`.set_colorbar_pad`, or
+:func:`.set_colorbar_thickness`.
+
+.. warning::
+
+   This package should not be confused with `mplutils` provided on
+   `PyPI <https://pypi.org/project/mplutils/>`__.
 
 Contents
 --------
