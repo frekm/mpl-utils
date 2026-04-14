@@ -1,3 +1,6 @@
+# v0.5.1
+- Fix constants.GOLDENRATIO
+
 # v0.5.0
 - Fix but preventing axes with locked aspect not resizing with `set_axes_size`
 - Change default thickness and padding of `add_colorbar`

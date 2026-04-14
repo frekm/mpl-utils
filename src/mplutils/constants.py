@@ -4,7 +4,7 @@ import math
 MM_PER_INCH: tp.Final = 25.4
 PTS_PER_INCH: tp.Final = 72.0
 PTS_PER_MM: tp.Final = PTS_PER_INCH / MM_PER_INCH
-GOLDENRATIO: tp.Final = 1.0 + math.sqrt(5.0) / 2.0  # 1.618
+GOLDENRATIO: tp.Final = (1.0 + math.sqrt(5.0)) / 2.0  # 1.618
 
 
 WIDTH_NATURE_1COL: tp.Final = 3.54
