@@ -2,22 +2,22 @@ from typing import Literal
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from matplotlib.colorbar import Colorbar
+from matplotlib.figure import Figure
 from matplotlib.transforms import Bbox
 
-from ._layout import (
-    normalize_anchor,
-    normalize_width_height,
-    set_axes_width_inch,
-    set_axes_height_inch,
-    set_colorbar_thickness_inch,
-    set_colorbar_pad_inch,
-    get_renderer,
-    update_colorbar,
-)
 from . import constants
 from ._core import convert_to_inches, get_ax_bbox_inch, get_ax_tbbox_inch
+from ._layout import (
+    get_renderer,
+    normalize_anchor,
+    normalize_width_height,
+    set_axes_height_inch,
+    set_axes_width_inch,
+    set_colorbar_pad_inch,
+    set_colorbar_thickness_inch,
+    update_colorbar,
+)
 
 
 def set_axes_size(
@@ -191,6 +191,11 @@ def align_axes_horizontally(
     alignment : {``"center"``, ``"left"``, ``"right"``}, default ``"center"``
         Which reference axis to take from `reference_ax`.
     """
+    valid_anchors = "center", "left", "right"
+    if alignment not in valid_anchors:
+        msg = f"{alignment=}, but it should be one of {valid_anchors}"
+        raise ValueError(msg)
+
     bbox_ax = ax.get_position()
     bbox_ref = reference_ax.get_position()
 
@@ -199,12 +204,8 @@ def align_axes_horizontally(
         x0 = bbox_ref.x0 + delta / 2.0
     elif alignment == "right":
         x0 = bbox_ref.x1 - bbox_ax.width
-    elif alignment == "left":
-        x0 = bbox_ref.x0
     else:
-        valid_anchors = "center", "left", "right"
-        msg = f"{alignment=}, but it should be one of {valid_anchors}"
-        raise ValueError(msg)
+        x0 = bbox_ref.x0
 
     new_bbox = Bbox.from_bounds(x0, bbox_ax.y0, bbox_ax.width, bbox_ax.height)
     ax.set_position(new_bbox)
@@ -242,6 +243,10 @@ def get_axes_margins(
         >>> mplu.get_axes_margins()
         (3.9599999999999795, 7.919999999999959, 17.079999999999995, 22.84000000000001)
     """
+    valid_units = "pts", "mm", "inch"
+    if unit not in valid_units:
+        raise ValueError(f"{unit=}, but it must be one of {valid_units}")
+
     ax = ax or plt.gca()
     fig = ax.figure
     if not isinstance(fig, Figure):
@@ -261,6 +266,5 @@ def get_axes_margins(
         return out_inch
     if unit == "pts":
         return tuple([el * constants.PTS_PER_INCH for el in out_inch])  # type: ignore
-    if unit == "mm":
+    else:
         return tuple([el * constants.MM_PER_INCH for el in out_inch])  # type: ignore
-    raise ValueError(f"{unit=}, but it must be one of ('pts', 'mm', 'inch')")

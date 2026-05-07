@@ -1,13 +1,9 @@
 from typing import Literal
+
 from matplotlib.axes import Axes
-from matplotlib.projections import PolarAxes
+from matplotlib.backend_bases import RendererBase
 from matplotlib.figure import Figure
 from matplotlib.transforms import Bbox
-from matplotlib.backend_bases import RendererBase
-import numpy as np
-
-from . import _core as core
-from . import constants
 
 
 def update_colorbar(cax: Axes, parent_bbox_old: Bbox, parent_bbox_new: Bbox) -> None:

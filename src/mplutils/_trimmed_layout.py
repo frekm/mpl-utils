@@ -1,6 +1,5 @@
-from matplotlib.transforms import Bbox
-
 import numpy as np
+from matplotlib.transforms import Bbox
 from numpy.typing import ArrayLike
 
 

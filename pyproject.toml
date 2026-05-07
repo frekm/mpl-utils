@@ -36,3 +36,7 @@ packages = ["src/mplutils"]
 
 [tool.ruff]
 line-length = 88
+fix = true
+
+[tool.ruff.lint]
+extend-select = ["NPY", "I", "RUF022"]

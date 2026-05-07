@@ -1,7 +1,7 @@
-from .errors import AliasError
-from ._core import FONT_SCALINGS
-
 import matplotlib.pyplot as plt
+
+from ._core import FONT_SCALINGS
+from .errors import AliasError
 
 
 def normalize_lw_fs_lh(

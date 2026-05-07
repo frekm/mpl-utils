@@ -1,9 +1,9 @@
-from matplotlib.layout_engine import LayoutEngine, ConstrainedLayoutEngine
-from matplotlib.figure import Figure
-from ._trimmed_layout import trim_figure
 import numpy as np
+from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine, LayoutEngine
 
-from ._fixed_layout import do_fixed_layout, validate_figure, ParamsDict
+from ._fixed_layout import ParamsDict, do_fixed_layout, validate_figure
+from ._trimmed_layout import trim_figure
 
 
 class FixedLayoutEngine(LayoutEngine):
@@ -201,9 +201,6 @@ class FixedLayoutEngine(LayoutEngine):
         for td in self.set.__kwdefaults__:  # type: ignore
             if locals()[td] is not None:
                 self._params[td] = locals()[td]
-
-    def get(self) -> ParamsDict:
-        return self._params
 
     def execute(self, fig):
         if self._is_executing:

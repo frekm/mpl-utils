@@ -23,20 +23,20 @@ FontsizeLike = tp.Union[
 
 FONT_SCALINGS: tp.Final = {
     "xx-small": 0.579,
-    "x-small": 0.694,
-    "small": 0.833,
-    "medium": 1.0,
-    "large": 1.200,
-    "x-large": 1.440,
+    "x-small":  0.694,
+    "small":    0.833,
+    "medium":   1.000,
+    "large":    1.200,
+    "x-large":  1.440,
     "xx-large": 1.728,
-    "larger": 1.2,
-    "smaller": 0.833,
-}
+    "larger":   1.200,
+    "smaller":  0.833,
+}  # fmt: skip
 
 
 class Array(np.ndarray, tp.Generic[DType]):
-    def __getitem__(self, key) -> DType:
-        return super().__getitem__(key)  # type: ignore
+    def __getitem__(self, key) -> DType:  # ty:ignore[invalid-method-override]
+        return super().__getitem__(key)
 
 
 class Quadrants(tp.NamedTuple):
@@ -81,7 +81,7 @@ class Quadrants(tp.NamedTuple):
         return self.bottom
 
     @property
-    def l(self) -> tp.Any:
+    def l(self) -> tp.Any:  # noqa: E743
         """
         Alias for left.
         """
@@ -148,14 +148,16 @@ class Quadrants(tp.NamedTuple):
 
 
 def convert_to_inches(val: float, unit: tp.Literal["inch", "pts", "mm"]) -> float:
+    valid_units = "inch", "pts", "mm"
+    if unit not in valid_units:
+        raise ValueError(f"{unit=}, but it must be one of {valid_units}")
+
     if unit == "inch":
         return val
     if unit == "pts":
         return val / 72.0
     if unit == "mm":
         return val / 25.4
-    valid_units = "inch", "pts", "mm"
-    raise ValueError(f"{unit=}, but it must be one of {valid_units}")
 
 
 def get_ax_bbox_inch(fig, ax) -> Bbox:

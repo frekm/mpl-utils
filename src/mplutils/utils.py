@@ -1,33 +1,33 @@
-import typing as tp
 import inspect
+import math
 import os
 import pathlib
-import math
+import typing as tp
 
 import cycler
 import matplotlib
-import matplotlib.pyplot as plt
 import matplotlib.axes as maxes
-import matplotlib.text as mtext
-import matplotlib.figure as mfig
-import matplotlib.colors as mcolors
-import matplotlib.colorbar as mcbar
 import matplotlib.cm as cm
+import matplotlib.colorbar as mcbar
+import matplotlib.colors as mcolors
+import matplotlib.figure as mfig
 import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import matplotlib.text as mtext
 import numpy as np
 import numpy.typing as npt
 
-from .constants import PTS_PER_INCH
-from .colors import OkabeItoPalette
 from ._core import FontsizeLike, convert_to_inches
 from ._fixed_layout import get_axes_for_layout, get_axes_grid, get_bboxes_inch_grid
 from ._layout import (
-    set_colorbar_thickness_inch,
-    set_colorbar_pad_inch,
-    set_axes_width_inch,
     set_axes_height_inch,
+    set_axes_width_inch,
+    set_colorbar_pad_inch,
+    set_colorbar_thickness_inch,
 )
 from ._utils import normalize_lw_fs_lh
+from .colors import OkabeItoPalette
+from .constants import PTS_PER_INCH
 
 
 def centers_to_edges(
@@ -1153,7 +1153,7 @@ def add_colorbar(
     if label is not None:
         kwargs = text_kwargs.copy()
         if location == "right":
-            if (not "verticalalignment" in kwargs) and (not "va" in kwargs):
+            if ("verticalalignment" not in kwargs) and ("va" not in kwargs):
                 kwargs["verticalalignment"] = "baseline"
             kwargs.setdefault("rotation", 270.0)
         cbar.set_label(label, **kwargs)

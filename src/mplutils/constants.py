@@ -1,5 +1,5 @@
-import typing as tp
 import math
+import typing as tp
 
 MM_PER_INCH: tp.Final = 25.4
 PTS_PER_INCH: tp.Final = 72.0

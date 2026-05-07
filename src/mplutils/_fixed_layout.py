@@ -1,17 +1,15 @@
-from matplotlib.figure import Figure, SubFigure
+import logging
+from typing import TypedDict, Unpack, cast
+
+import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure, SubFigure
 from matplotlib.gridspec import SubplotSpec
 from matplotlib.transforms import Bbox
-import numpy as np
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
-import logging
-from typing import cast, TypedDict, Unpack
-
-from . import _core
-from . import errors
+from . import _core, errors
 from .constants import PTS_PER_INCH
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +73,7 @@ def normalize_hv_pads(vals: ArrayLike, n: int) -> NDArray:
     if not vals.ndim > 0:
         vals = np.array([vals] * (n - 1))
     elif len(vals) != n - 1:
-        raise ValueError(f"{vals=}, but must be scalar or of length {n-1}")
+        raise ValueError(f"{vals=}, but must be scalar or of length {n - 1}")
     return vals
 
 
@@ -195,7 +193,7 @@ def get_axes_grid(axes: list[Axes]) -> _core.Array[Axes]:
 
     if logger.isEnabledFor(logging.DEBUG):
         for (row, col), ax in np.ndenumerate(axes_grid):
-            logger.debug(f"{(row,col)}: {ax.get_label()}")
+            logger.debug(f"{(row, col)}: {ax.get_label()}")
 
     return axes_grid  # type: ignore
 

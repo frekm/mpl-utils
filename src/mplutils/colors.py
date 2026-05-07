@@ -1,5 +1,5 @@
-import typing
 import dataclasses
+import typing
 
 ColorsLike = typing.Literal[
     "#AE1117",
@@ -173,7 +173,9 @@ class OkabeItoPalette:
     @typing.overload
     def __getitem__(self, i: slice) -> tuple[str, ...]: ...
 
-    def __getitem__(self, i: typing.Literal[0, 1, 2, 3, 4, 5, 6] | slice | int) -> (
+    def __getitem__(
+        self, i: typing.Literal[0, 1, 2, 3, 4, 5, 6] | slice | int
+    ) -> (
         typing.Literal[
             "#56b4e9",
             "#e69f00",
