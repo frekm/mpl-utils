@@ -12,10 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "numpy",
-    "matplotlib",
-]
+dependencies = ["numpy", "matplotlib"]
 
 [project.urls]
 "Repository" = "https://github.com/frekm/mpl-utils"
@@ -36,3 +33,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mplutils"]
+
+[tool.ruff]
+line-length = 88
