@@ -1012,7 +1012,7 @@ def square_polar_axes(ax: maxes.Axes | None = None, zorder: float = 0.98) -> Non
     ax.set_axis_off()
 
 
-def normalize_colorbar_metrics(
+def _normalize_colorbar_metrics(
     fig: mfig.Figure,
     ax: maxes.Axes,
     thickness: float | str | None,
@@ -1143,7 +1143,9 @@ def add_colorbar(
     axis.set_ticks_position(location)  # type: ignore
     axis.set_label_position(location)  # type: ignore
 
-    thickness_inch, pad_inch = normalize_colorbar_metrics(fig, ax, thickness, pad, unit)
+    thickness_inch, pad_inch = _normalize_colorbar_metrics(
+        fig, ax, thickness, pad, unit
+    )
 
     if thickness_inch is not None:
         set_colorbar_thickness_inch(fig, cbar.ax, thickness_inch)
