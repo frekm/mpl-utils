@@ -29,6 +29,7 @@ API reference
     set_latex_backend
     square_polar_axes
     textwithbox
+    lollipop
     Colors
     OkabeItoPalette
     OkabeItoAccentPalette

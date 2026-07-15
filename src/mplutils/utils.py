@@ -1169,3 +1169,92 @@ def add_colorbar(
         set_axes_height_inch(fig, ax, old_pos.height * fh, anchor)
 
     return cbar
+
+
+def lollipop(
+    x: npt.ArrayLike,
+    y: npt.ArrayLike,
+    ax: maxes.Axes | None = None,
+    base: npt.ArrayLike = 0.0,
+    **kwargs,
+):
+    """
+    Draw a lollipop chart on the given axes.
+
+    Parameters
+    ----------
+    x : array_like
+        X positions or categorical labels. Non-numeric values are treated
+        as categories and mapped to integer positions.
+
+    y : array_like
+        Y values for each lollipop.
+
+    ax : :class:`matplotlib.axes.Axes`, optional.
+        Target axes to plot on.
+
+        If None, use last active axes.
+
+    base : float or array-like, optional
+        Baseline value(s) from which the vertical lines start. Default is 0.
+
+    **kwargs
+        Additional keyword arguments passed to ``Axes.plot`` for marker styling.
+        Common aliases like ``ms``, ``lw``, ``ls``, and ``c`` are supported.
+
+    Returns
+    -------
+    markers : :class:`matplotlib.lines.Line2D`
+        The Line2D object corresponding to the lollipop markers.
+
+    lines : :class:`matplotlib.collections.LineCollection`
+        The LineCollection corresponding to the lollipop sticks.
+
+    Examples
+    --------
+
+    .. plot:: _examples/lollipop.py
+        :include-source:
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    if x.shape != y.shape:
+        raise ValueError("x and y must have the same shape")
+
+    if ax is None:
+        ax = plt.gca()
+
+    # --- CATEGORICAL SUPPORT ---
+    if not np.issubdtype(x.dtype, np.number):
+        labels = x.astype(str)
+        x = np.arange(len(labels))
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+
+    base = np.broadcast_to(base, x.shape)
+
+    kwargs_ = kwargs.copy()
+
+    # Normalize aliases
+    alias_map = {"ms": "markersize", "ls": "linestyle", "lw": "linewidth", "c": "color"}
+    for short, full in alias_map.items():
+        if short in kwargs_:
+            kwargs_[full] = kwargs_.pop(short)
+
+    # Marker styling
+    kwargs_.setdefault("marker", "o")
+    kwargs_.setdefault("markersize", plt.rcParams["lines.markersize"])
+
+    lw = kwargs_.pop("linewidth", plt.rcParams["lines.linewidth"])
+
+    # Draw markers (no line)
+    kwargs_["linewidth"] = 0
+    (marks,) = ax.plot(x, y, **kwargs_)
+
+    # Draw lines
+    color = kwargs_.get("color", marks.get_color())
+
+    lines = ax.vlines(x, base, y, colors=color, linewidth=lw)
+
+    return marks, lines

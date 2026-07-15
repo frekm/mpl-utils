@@ -1,4 +1,5 @@
 # v0.6.0-dev
+- Add mplutils.lollipop()
 
 # v0.5.1
 - Fix constants.GOLDENRATIO
