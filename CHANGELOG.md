@@ -1,4 +1,4 @@
-# v0.6.0-dev
+# v0.6.0
 - Add mplutils.lollipop()
 
 # v0.5.1

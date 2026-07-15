@@ -45,11 +45,11 @@ from GitHub.
 
     pip install git+https://github.com/frekm/mpl-utils.git
 
-You can install a particular version by appending it, e.g. ``v0.5.0``,
+You can install a particular version by appending it, e.g. ``v0.6.0``,
 
 .. code-block:: shell
 
-    pip install git+https://github.com/frekm/mpl-utils.git@v0.5.0
+    pip install git+https://github.com/frekm/mpl-utils.git@v0.6.0
 
 Check the `release page <https://github.com/frekm/mpl-utils/releases/>`__
 which versions exist.
@@ -77,7 +77,7 @@ or a paticular tag (corresponding to a particular release) using
 
 .. code-block:: shell
 
-    pip install https://github.com/frekm/mpl-utils/archive/refs/tags/v0.1.0.zip
+    pip install https://github.com/frekm/mpl-utils/archive/refs/tags/v0.6.0.zip
 
 Replace "v0.1.0" with the particular version you want.
 
