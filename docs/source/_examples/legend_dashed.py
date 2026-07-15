@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import mplutils as mplu
 
 _, (ax0, ax1) = plt.subplots(1, 2, layout=mplu.FixedLayoutEngine())

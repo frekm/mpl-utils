@@ -1,6 +1,7 @@
-import mplutils as mplu
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+import mplutils as mplu
 
 ax1 = plt.subplot(121, polar=True)
 ax2 = plt.subplot(122, polar=True)

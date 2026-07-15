@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import mplutils as mplu
 
 fig, _ = plt.subplots(2, 3, layout="compressed")

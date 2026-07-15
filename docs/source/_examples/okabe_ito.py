@@ -1,7 +1,8 @@
-import mplutils as mplu
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_hex
 from matplotlib.patches import Rectangle
+
+import mplutils as mplu
 
 palette = mplu.OkabeItoPalette()
 

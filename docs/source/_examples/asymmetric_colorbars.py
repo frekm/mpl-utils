@@ -1,7 +1,8 @@
-import mplutils as mplu
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+
+import mplutils as mplu
 
 # some data to plot
 fr = 0.5

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
 import mplutils as mplu
 
 x = np.linspace(1.0, 10.0, 9)

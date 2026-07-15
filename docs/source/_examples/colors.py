@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import matplotlib.patheffects as patheffects
+import matplotlib.pyplot as plt
+
 import mplutils as mplu
 
 fig, ax = plt.subplots(layout=mplu.FixedLayoutEngine())
