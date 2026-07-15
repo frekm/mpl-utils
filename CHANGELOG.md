@@ -1,3 +1,5 @@
+# v0.6.0-dev
+
 # v0.5.1
 - Fix constants.GOLDENRATIO
 

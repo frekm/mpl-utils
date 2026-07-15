@@ -52,7 +52,7 @@ def centers_to_edges(
     centers : array_like, shape(n)
         centers of the bins
 
-    lower, uppper : float, optional
+    lower, upper : float, optional
         Lower/upper limits of the range.
 
         At least one limit must be provided if bins don't have a constant

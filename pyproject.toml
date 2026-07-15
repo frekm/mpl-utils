@@ -1,6 +1,6 @@
 [project]
 name = "mplutils"
-version = "0.5.1"
+version = "0.6.0-dev"
 authors = [{ name = "Max Kircher" }]
 description = """
     A collection of utility methods to manipulate matplotlib figures.
